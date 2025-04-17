@@ -1,7 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Task, TaskCategory } from '../types/Task';
 import { CategorySelector } from './CategorySelector';
-import { Button } from './ui/button';
 
 interface TaskListProps {
   tasks: Task[];
@@ -18,65 +17,41 @@ export const TaskList: React.FC<TaskListProps> = ({
 }) => {
   const [currentCategory, setCurrentCategory] = useState<TaskCategory>('all');
   const [isAdding, setIsAdding] = useState(false);
-  const [newTaskTitle, setNewTaskTitle] = useState('');
-  const formRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (formRef.current && !formRef.current.contains(event.target as Node)) {
-        setIsAdding(false);
-        setNewTaskTitle('');
+  const handleAddTask = (title: string, date?: Date, time?: string) => {
+    if (title.trim()) {
+      // Определяем категорию на основе даты
+      let category = currentCategory === 'all' ? 'inbox' : currentCategory;
+      
+      // Если указана дата
+      if (date) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        
+        const dateOnly = new Date(date);
+        dateOnly.setHours(0, 0, 0, 0);
+        
+        if (dateOnly.getTime() === today.getTime()) {
+          category = 'today';
+        } else if (dateOnly.getTime() === tomorrow.getTime()) {
+          category = 'tomorrow';
+        }
       }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const trimmedTitle = newTaskTitle.trim();
-    if (trimmedTitle) {
+      
       onAddTask({
-        title: trimmedTitle,
+        title: title.trim(),
         description: '',
-        category: currentCategory === 'all' ? 'inbox' : currentCategory,
+        category,
         priority: 'medium',
         completed: false,
+        dueDate: date
       });
-      setNewTaskTitle('');
       setIsAdding(false);
     }
   };
-
-  const addTaskForm = (
-    <div ref={formRef}>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <input
-          type="text"
-          value={newTaskTitle}
-          onChange={(e) => setNewTaskTitle(e.target.value)}
-          placeholder="Введите название задачи..."
-          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          autoFocus
-        />
-        <div className="flex space-x-2">
-          <Button type="submit" disabled={!newTaskTitle.trim()}>
-            Добавить
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => setIsAdding(false)}
-          >
-            Отмена
-          </Button>
-        </div>
-      </form>
-    </div>
-  );
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-black to-zinc-900/80">
@@ -97,7 +72,8 @@ export const TaskList: React.FC<TaskListProps> = ({
             tasks={tasks}
             isAdding={isAdding}
             onAddClick={() => setIsAdding(true)}
-            addTaskForm={addTaskForm}
+            onCancelAdd={() => setIsAdding(false)}
+            onSubmitTask={handleAddTask}
           />
         </div>
       </div>

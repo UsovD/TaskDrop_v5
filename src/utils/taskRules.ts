@@ -4,29 +4,35 @@ import { Task, TaskCategory } from '../types/Task';
 export const categoryRules = {
   // Проверяет, подходит ли задача для категории "Сегодня"
   isToday: (task: Task): boolean => {
+    if (!task.dueDate) return false;
+    
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const taskDate = new Date(task.createdAt.getFullYear(), task.createdAt.getMonth(), task.createdAt.getDate());
+    const taskDate = new Date(task.dueDate.getFullYear(), task.dueDate.getMonth(), task.dueDate.getDate());
     return taskDate.getTime() === today.getTime();
   },
 
   // Проверяет, подходит ли задача для категории "Завтра"
   isTomorrow: (task: Task): boolean => {
+    if (!task.dueDate) return false;
+    
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
-    const taskDate = new Date(task.createdAt.getFullYear(), task.createdAt.getMonth(), task.createdAt.getDate());
+    const taskDate = new Date(task.dueDate.getFullYear(), task.dueDate.getMonth(), task.dueDate.getDate());
     return taskDate.getTime() === tomorrow.getTime();
   },
 
   // Проверяет, входит ли задача в диапазон 7 дней
   isWithinWeek: (task: Task): boolean => {
+    if (!task.dueDate) return false;
+    
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const weekLater = new Date(today);
     weekLater.setDate(weekLater.getDate() + 7);
-    const taskDate = new Date(task.createdAt.getFullYear(), task.createdAt.getMonth(), task.createdAt.getDate());
+    const taskDate = new Date(task.dueDate.getFullYear(), task.dueDate.getMonth(), task.dueDate.getDate());
     return taskDate > today && taskDate <= weekLater;
   }
 };
@@ -50,7 +56,7 @@ export const filterTasksByCategory = (tasks: Task[], category: TaskCategory): Ta
     case 'tomorrow':
       return nonCompletedTasks.filter(task => categoryRules.isTomorrow(task));
     
-    case 'week':
+    case 'next7days':
       return nonCompletedTasks.filter(task => categoryRules.isWithinWeek(task));
     
     case 'all':
@@ -96,7 +102,7 @@ export const determineTaskCategory = (task: Omit<Task, 'category'>): TaskCategor
   
   if (categoryRules.isToday(task as Task)) return 'today';
   if (categoryRules.isTomorrow(task as Task)) return 'tomorrow';
-  if (categoryRules.isWithinWeek(task as Task)) return 'week';
+  if (categoryRules.isWithinWeek(task as Task)) return 'next7days';
   
   return 'all';
 }; 

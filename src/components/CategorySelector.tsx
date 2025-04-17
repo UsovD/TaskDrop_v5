@@ -10,7 +10,8 @@ interface CategorySelectorProps {
   tasks: Task[];
   isAdding: boolean;
   onAddClick: () => void;
-  addTaskForm: React.ReactNode;
+  onCancelAdd: () => void;
+  onSubmitTask: (title: string, date?: Date, time?: string) => void;
 }
 
 export const CategorySelector: React.FC<CategorySelectorProps> = ({
@@ -19,7 +20,8 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
   tasks,
   isAdding,
   onAddClick,
-  addTaskForm,
+  onCancelAdd,
+  onSubmitTask,
 }) => {
   const getIconBackground = (categoryId: string) => {
     switch (categoryId) {
@@ -123,8 +125,13 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
         )}
       </div>
 
-      <div>
-        {isAdding ? addTaskForm : <AddTaskButton onClick={onAddClick} />}
+      <div className="transform transition-all duration-300 ease-out">
+        <AddTaskButton 
+          onClick={onAddClick} 
+          isExpanded={isAdding} 
+          onClose={onCancelAdd}
+          onAddTask={onSubmitTask}
+        />
       </div>
 
       <div className="space-y-2">

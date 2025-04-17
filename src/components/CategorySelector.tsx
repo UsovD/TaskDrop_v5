@@ -1,42 +1,97 @@
-import React, { Suspense } from 'react';
+import React from 'react';
 import { Task, TaskCategory } from '../types/Task';
 import { CATEGORIES } from '../constants/categories';
 import { filterTasksByCategory } from '../utils/taskRules';
+import { AddTaskButton } from './AddTaskButton';
 
 interface CategorySelectorProps {
   currentCategory: TaskCategory;
   onSelectCategory: (category: TaskCategory) => void;
   tasks: Task[];
+  isAdding: boolean;
+  onAddClick: () => void;
+  addTaskForm: React.ReactNode;
 }
 
 export const CategorySelector: React.FC<CategorySelectorProps> = ({
   currentCategory,
   onSelectCategory,
   tasks,
+  isAdding,
+  onAddClick,
+  addTaskForm,
 }) => {
-  const renderBadge = (count: number, category: string) => {
-    let badgeClasses = "text-xs px-2 py-0.5 rounded-full ml-auto ";
-    
-    switch (category) {
+  const getIconBackground = (categoryId: string) => {
+    switch (categoryId) {
+      case 'all':
+        return 'bg-blue-500';
+      case 'inbox':
+        return 'bg-orange-500';
       case 'today':
-        badgeClasses += "bg-blue-800 text-blue-300";
-        break;
+        return 'bg-green-500';
+      case 'tomorrow':
+        return 'bg-red-500';
+      case 'next7days':
+        return 'bg-purple-500';
       case 'completed':
-        badgeClasses += "bg-green-800 text-green-400";
-        break;
+        return 'bg-gray-500';
       default:
-        badgeClasses += "bg-zinc-700 text-zinc-300";
+        return 'bg-zinc-600';
     }
-    
+  };
+
+  const getBadgeBackground = (categoryId: string) => {
+    switch (categoryId) {
+      case 'all':
+        return 'bg-blue-500/20 text-blue-300';
+      case 'inbox':
+        return 'bg-orange-500/20 text-orange-300';
+      case 'today':
+        return 'bg-green-500/20 text-green-300';
+      case 'tomorrow':
+        return 'bg-red-500/20 text-red-300';
+      case 'next7days':
+        return 'bg-purple-500/20 text-purple-300';
+      case 'completed':
+        return 'bg-gray-500/20 text-gray-300';
+      default:
+        return 'bg-zinc-700 text-zinc-300';
+    }
+  };
+
+  const renderBadge = (count: number, categoryId: string) => {
+    const badgeClasses = `text-xs px-2 py-0.5 rounded-full ml-auto ${getBadgeBackground(categoryId)}`;
     return <span className={badgeClasses}>{count}</span>;
   };
 
-  const mainCategories = CATEGORIES.filter(cat => !['completed'].includes(cat.id));
-  const statusCategories = CATEGORIES.filter(cat => ['completed'].includes(cat.id));
+  const renderCategoryCard = (category: (typeof CATEGORIES)[number], isActive: boolean) => {
+    const count = filterTasksByCategory(tasks, category.id).length;
+    const Icon = category.icon;
+    const bgColor = getIconBackground(category.id);
+    
+    return (
+      <button
+        key={category.id}
+        onClick={() => onSelectCategory(category.id)}
+        className={`flex flex-col items-start p-4 bg-zinc-800/50 backdrop-blur-sm rounded-2xl transition-colors w-full ${
+          isActive ? 'ring-2 ring-blue-600' : 'hover:bg-zinc-700/50'
+        }`}
+      >
+        <span className={`flex items-center justify-center w-10 h-10 rounded-xl mb-3 ${bgColor}`} aria-hidden="true">
+          <Icon size={24} className="text-white" />
+        </span>
+        <div className="flex justify-between items-center w-full">
+          <span className="text-white font-medium text-sm">{category.label}</span>
+          <span className="text-2xl font-semibold text-white">{count}</span>
+        </div>
+      </button>
+    );
+  };
 
   const renderCategoryButton = (category: (typeof CATEGORIES)[number], isActive: boolean) => {
     const count = filterTasksByCategory(tasks, category.id).length;
     const Icon = category.icon;
+    const bgColor = getIconBackground(category.id);
     
     return (
       <button
@@ -47,10 +102,8 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
         }`}
       >
         <div className="flex items-center">
-          <span className="text-zinc-400 mr-3" aria-hidden="true">
-            <Suspense fallback={<div className="w-5 h-5 bg-zinc-700 rounded" />}>
-              <Icon size={20} />
-            </Suspense>
+          <span className={`flex items-center justify-center w-8 h-8 rounded-xl mr-3 ${bgColor}`} aria-hidden="true">
+            <Icon size={20} className="text-white" />
           </span>
           <span className="text-white font-medium">{category.label}</span>
         </div>
@@ -59,24 +112,26 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
     );
   };
 
+  const topCategories = CATEGORIES.filter(cat => ['today', 'completed'].includes(cat.id));
+  const listCategories = CATEGORIES.filter(cat => !['today', 'completed'].includes(cat.id));
+
   return (
-    <div className="space-y-2">
-      <div className="space-y-2">
-        {mainCategories.map((category) => 
-          renderCategoryButton(category, currentCategory === category.id)
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 gap-3">
+        {topCategories.map((category) => 
+          renderCategoryCard(category, currentCategory === category.id)
         )}
       </div>
 
-      {statusCategories.length > 0 && (
-        <>
-          <div className="border-t border-zinc-700 my-2" />
-          <div className="space-y-2">
-            {statusCategories.map((category) =>
-              renderCategoryButton(category, currentCategory === category.id)
-            )}
-          </div>
-        </>
-      )}
+      <div>
+        {isAdding ? addTaskForm : <AddTaskButton onClick={onAddClick} />}
+      </div>
+
+      <div className="space-y-2">
+        {listCategories.map((category) =>
+          renderCategoryButton(category, currentCategory === category.id)
+        )}
+      </div>
     </div>
   );
 }; 

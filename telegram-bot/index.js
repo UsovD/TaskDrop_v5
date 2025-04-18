@@ -9,8 +9,11 @@ const apiUrl = process.env.API_URL;
 // URL веб-приложения
 const webAppUrl = process.env.WEBAPP_URL;
 
-// Создаем экземпляр бота
-const bot = new TelegramBot(token, { polling: true });
+// Создаем экземпляр бота с отключенными вебхуками во избежание ошибок
+const bot = new TelegramBot(token, { 
+  polling: true,
+  filepath: false
+});
 
 // Обработчик команды /start
 bot.onText(/\/start/, (msg) => {
@@ -23,7 +26,12 @@ bot.onText(/\/start/, (msg) => {
 /add - добавить новую задачу
 /help - показать информацию о командах
 /webapp - открыть веб-приложение`, {
-    parse_mode: 'Markdown'
+    parse_mode: 'Markdown',
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '🚀 Открыть приложение', web_app: { url: webAppUrl } }]
+      ]
+    }
   });
 });
 
@@ -37,7 +45,12 @@ bot.onText(/\/help/, (msg) => {
 /add - добавить новую задачу
 /help - показать эту справку
 /webapp - открыть веб-приложение`, {
-    parse_mode: 'Markdown'
+    parse_mode: 'Markdown',
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '🚀 Открыть приложение', web_app: { url: webAppUrl } }]
+      ]
+    }
   });
 });
 
@@ -48,7 +61,7 @@ bot.onText(/\/webapp/, (msg) => {
   bot.sendMessage(chatId, 'Нажмите на кнопку ниже, чтобы открыть веб-приложение TaskDrop:', {
     reply_markup: {
       inline_keyboard: [
-        [{ text: 'Открыть TaskDrop', web_app: { url: webAppUrl } }]
+        [{ text: '🚀 Открыть TaskDrop', web_app: { url: webAppUrl } }]
       ]
     }
   });
@@ -67,7 +80,14 @@ bot.onText(/\/tasks/, async (msg) => {
     const tasks = response.data;
     
     if (tasks.length === 0) {
-      bot.sendMessage(chatId, 'У вас пока нет активных задач.');
+      bot.sendMessage(chatId, 'У вас пока нет активных задач.', {
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '➕ Добавить задачу', callback_data: 'prompt_add_task' }],
+            [{ text: '🚀 Открыть приложение', web_app: { url: webAppUrl } }]
+          ]
+        }
+      });
       return;
     }
     
@@ -96,13 +116,20 @@ bot.onText(/\/tasks/, async (msg) => {
       parse_mode: 'Markdown',
       reply_markup: {
         inline_keyboard: [
-          [{ text: 'Открыть в приложении', web_app: { url: webAppUrl } }]
+          [{ text: '➕ Добавить задачу', callback_data: 'prompt_add_task' }],
+          [{ text: '🚀 Открыть в приложении', web_app: { url: webAppUrl } }]
         ]
       }
     });
   } catch (error) {
     console.error('Ошибка при получении задач:', error);
-    bot.sendMessage(chatId, 'Произошла ошибка при получении задач. Пожалуйста, попробуйте позже.');
+    bot.sendMessage(chatId, 'Произошла ошибка при получении задач. Пожалуйста, попробуйте позже.', {
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '🚀 Открыть приложение', web_app: { url: webAppUrl } }]
+        ]
+      }
+    });
   }
 });
 
@@ -129,7 +156,8 @@ bot.onText(/\/add (.+)/, async (msg, match) => {
         parse_mode: 'Markdown',
         reply_markup: {
           inline_keyboard: [
-            [{ text: 'Посмотреть все задачи', callback_data: 'show_tasks' }]
+            [{ text: '📋 Посмотреть все задачи', callback_data: 'show_tasks' }],
+            [{ text: '🚀 Открыть приложение', web_app: { url: webAppUrl } }]
           ]
         }
       });
@@ -138,15 +166,36 @@ bot.onText(/\/add (.+)/, async (msg, match) => {
     }
   } catch (error) {
     console.error('Ошибка при создании задачи:', error);
-    bot.sendMessage(chatId, 'Произошла ошибка при добавлении задачи. Пожалуйста, попробуйте позже.');
+    bot.sendMessage(chatId, 'Произошла ошибка при добавлении задачи. Пожалуйста, попробуйте позже.', {
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '🚀 Открыть приложение', web_app: { url: webAppUrl } }]
+        ]
+      }
+    });
   }
 });
 
 // Обработчик простой команды добавления задачи без параметров
 bot.onText(/^\/add$/, (msg) => {
   const chatId = msg.chat.id;
-  bot.sendMessage(chatId, 'Пожалуйста, укажите текст задачи: /add Название задачи');
+  bot.sendMessage(chatId, 'Пожалуйста, укажите текст задачи: /add Название задачи', {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '🚀 Открыть приложение', web_app: { url: webAppUrl } }]
+      ]
+    }
+  });
 });
+
+// Добавляем главную кнопку меню для открытия приложения
+bot.setMyCommands([
+  { command: '/start', description: 'Запустить бота' },
+  { command: '/tasks', description: 'Показать список задач' },
+  { command: '/add', description: 'Добавить новую задачу' },
+  { command: '/help', description: 'Помощь по командам' },
+  { command: '/webapp', description: 'Открыть приложение TaskDrop' }
+]);
 
 // Обработчик callback_data
 bot.on('callback_query', async (callbackQuery) => {
@@ -160,6 +209,14 @@ bot.on('callback_query', async (callbackQuery) => {
       text: '/tasks',
       from: callbackQuery.from
     });
+  } else if (data === 'prompt_add_task') {
+    bot.sendMessage(chatId, 'Напишите задачу в формате: /add Название задачи', {
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '🚀 Открыть приложение', web_app: { url: webAppUrl } }]
+        ]
+      }
+    });
   }
   
   // Обязательно ответить на callback запрос
@@ -171,8 +228,19 @@ bot.on('message', (msg) => {
   if (msg.text && !msg.text.startsWith('/')) {
     const chatId = msg.chat.id;
     
-    bot.sendMessage(chatId, 'Я понимаю только команды. Используйте /help для получения списка команд.');
+    bot.sendMessage(chatId, 'Я понимаю только команды. Используйте /help для получения списка команд.', {
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '🚀 Открыть приложение', web_app: { url: webAppUrl } }]
+        ]
+      }
+    });
   }
+});
+
+// Добавляем обработку ошибок для устойчивости бота
+bot.on('polling_error', (error) => {
+  console.error('Ошибка в работе бота:', error.message);
 });
 
 console.log('Бот TaskDrop запущен!'); 

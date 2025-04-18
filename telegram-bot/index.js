@@ -53,6 +53,30 @@ async function getOrCreateUser(msg) {
     if (response.status === 200 && !response.data.error) {
       console.log(`👉 ✅ Найден существующий пользователь: ${telegramUser.first_name} (ID: ${response.data.id})`);
       
+      // Проверяем, соответствует ли ID пользователя его Telegram ID
+      if (response.data.id !== telegramUser.id) {
+        console.log(`👉 ⚠️ ID пользователя (${response.data.id}) не соответствует его Telegram ID (${telegramUser.id})`);
+        
+        try {
+          // Обновляем пользователя, чтобы использовать Telegram ID в качестве основного ID
+          const updateResponse = await axios.put(`${apiUrl}/users/${response.data.id}`, {
+            id: telegramUser.id,
+            telegram_id: telegramUser.id
+          });
+          
+          if (updateResponse.status === 200) {
+            console.log(`👉 ✅ ID пользователя обновлен на ${telegramUser.id}`);
+            
+            // Сохраняем chat_id пользователя для уведомлений
+            userChatIds.set(telegramUser.id, msg.chat.id);
+            
+            return updateResponse.data;
+          }
+        } catch (updateError) {
+          console.error('Ошибка при обновлении ID пользователя:', updateError);
+        }
+      }
+      
       // Сохраняем chat_id пользователя для уведомлений
       userChatIds.set(response.data.id, msg.chat.id);
       
@@ -64,30 +88,43 @@ async function getOrCreateUser(msg) {
   }
   
   try {
-    // Создаем пользователя
+    // Создаем нового пользователя
     const userData = {
-      telegram_id: msg.from.id,
-      first_name: msg.from.first_name,
-      last_name: msg.from.last_name,
-      username: msg.from.username,
-      photo_url: null // Telegram не предоставляет URL фото в сообщении
+      id: telegramUser.id, // Используем Telegram ID как основной ID
+      telegram_id: telegramUser.id,
+      first_name: telegramUser.first_name,
+      last_name: telegramUser.last_name,
+      username: telegramUser.username
     };
     
-    const response = await axios.post(`${apiUrl}/users`, userData);
+    const createResponse = await axios.post(`${apiUrl}/users`, userData);
     
-    if (response.status === 200 || response.status === 201) {
-      console.log(`👉 ✅ Создан новый пользователь: ${userData.first_name} (ID: ${response.data.id})`);
+    if (createResponse.status === 200 || createResponse.status === 201) {
+      console.log(`👉 ✅ Создан новый пользователь: ${telegramUser.first_name} (ID: ${createResponse.data.id})`);
       
       // Сохраняем chat_id пользователя для уведомлений
-      userChatIds.set(response.data.id, msg.chat.id);
+      userChatIds.set(createResponse.data.id, msg.chat.id);
       
-      return response.data;
-    } else {
-      throw new Error(`Ошибка при создании пользователя: ${response.statusText}`);
+      return createResponse.data;
     }
-  } catch (error) {
-    console.error('Ошибка при создании пользователя:', error);
-    throw error;
+    
+    throw new Error('Не удалось создать пользователя');
+  } catch (createError) {
+    console.error('Ошибка при создании пользователя:', createError);
+    
+    // В случае ошибки используем локальные данные пользователя
+    const defaultUser = {
+      id: telegramUser.id,
+      telegram_id: telegramUser.id,
+      first_name: telegramUser.first_name,
+      last_name: telegramUser.last_name,
+      username: telegramUser.username
+    };
+    
+    // Сохраняем chat_id пользователя для уведомлений
+    userChatIds.set(defaultUser.id, msg.chat.id);
+    
+    return defaultUser;
   }
 }
 

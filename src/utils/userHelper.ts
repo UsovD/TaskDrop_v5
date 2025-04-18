@@ -68,14 +68,34 @@ export const getUserData = async (): Promise<UserData> => {
         // Если пользователь найден, возвращаем его данные
         if (response.status === 200 && !response.data.error) {
           console.log('Пользователь найден в базе:', response.data);
+          
+          // Проверяем, соответствует ли ID в базе Telegram ID
+          // Если нет, обновляем для правильной синхронизации
+          if (response.data.id !== telegramUser.id) {
+            console.log('ID в базе не соответствует Telegram ID, синхронизируем...');
+            try {
+              const updateResponse = await axios.put(`${API_BASE_URL}/users/${response.data.id}`, {
+                id: telegramUser.id,
+                telegram_id: telegramUser.id
+              });
+              if (updateResponse.status === 200) {
+                console.log('ID пользователя синхронизирован:', updateResponse.data);
+                return updateResponse.data;
+              }
+            } catch (updateError) {
+              console.error('Ошибка при синхронизации ID:', updateError);
+            }
+          }
+          
           return response.data;
         }
       } catch (error) {
         console.log('Пользователь не найден в базе, создаем нового');
         
         try {
-          // Создаем нового пользователя
+          // Создаем нового пользователя с ID = Telegram ID
           const userData = {
+            id: telegramUser.id,
             telegram_id: telegramUser.id,
             first_name: telegramUser.first_name,
             last_name: telegramUser.last_name,

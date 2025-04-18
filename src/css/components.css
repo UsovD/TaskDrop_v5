@@ -268,13 +268,11 @@ body {
   align-items: center;
   padding-bottom: 16px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  background: var(--background-primary);
 }
 
 .header-content {
   display: flex;
   flex-direction: column;
-  background: var(--background-primary);
 }
 
 /* Стили для компонента UserInfo */
@@ -286,7 +284,6 @@ body {
   background-color: transparent;
   border-radius: 0;
   border-bottom: none;
-  background: var(--background-primary);
 }
 
 .user-avatar {

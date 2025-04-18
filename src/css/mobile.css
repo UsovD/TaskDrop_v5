@@ -1,0 +1,63 @@
+/* Мобильные стили для решения проблемы с полноэкранным отображением */
+
+:root {
+  --app-height: 100%;
+}
+
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  height: var(--app-height);
+  overflow: hidden;
+  padding: 0;
+  margin: 0;
+  background-color: #000000;
+  touch-action: manipulation;
+  -webkit-overflow-scrolling: touch;
+}
+
+body {
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  height: var(--app-height);
+  overflow: hidden;
+}
+
+/* Глобальные стили для контейнеров страниц */
+.routes-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  height: var(--app-height);
+  overflow: auto;
+  background-color: #000000;
+}
+
+.app {
+  min-height: 100%;
+  min-height: var(--app-height);
+  width: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Стили для страницы редактирования задачи */
+.task-edit-page {
+  min-height: 100%;
+  min-height: var(--app-height);
+  width: 100%;
+  overflow-y: auto;
+  padding-bottom: 100px; /* Добавляем отступ снизу, чтобы контент был виден */
+}
+
+/* Анимации */
+.page-transition {
+  min-height: 100%;
+  min-height: var(--app-height);
+  background-color: #000000;
+} 

@@ -177,7 +177,7 @@ const MainPage: React.FC = () => {
 
 const AppRoutes: React.FC = () => {
   return (
-    <div className="routes-container" style={{ backgroundColor: "#000000", minHeight: "100vh" }}>
+    <div className="routes-container">
       <Routes>
         <Route path="/" element={
           <PageTransition>

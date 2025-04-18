@@ -239,7 +239,7 @@ export const TaskEditPage: React.FC = () => {
   };
   
   return (
-    <div className="min-h-screen bg-black text-white p-4">
+    <div className="min-h-screen bg-black text-white p-4 task-edit-page">
       <div className="max-w-md mx-auto">
         {/* Верхняя панель с кнопкой назад и заголовком */}
         <div className="flex items-center mb-6">

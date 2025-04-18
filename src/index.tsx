@@ -6,6 +6,8 @@ import ReactDOM from 'react-dom/client';
 import { AppRoot } from '@telegram-apps/telegram-ui';
 import App from './App';
 import './index.css';
+import './css/mobile.css';
+import './js/mobileViewport';
 import './init';
 
 // Mock the environment in case, we are outside Telegram.

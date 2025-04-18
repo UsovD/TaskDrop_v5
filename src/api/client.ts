@@ -72,10 +72,25 @@ class ApiClient {
   }
 
   // Обновление задачи
-  async updateTask(id: number, task: { done: boolean }): Promise<ApiTask> {
+  async updateTask(id: number, task: Partial<Omit<ApiTask, 'id' | 'created_at'>>): Promise<ApiTask> {
+    console.log('Отправка запроса на обновление задачи:', { id, task });
+    
+    // Формируем объект для обновления, включая все доступные поля
+    const updateData: Record<string, any> = {};
+    
+    if ('done' in task) {
+      updateData.done = task.done;
+    }
+    
+    if ('text' in task) {
+      updateData.text = task.text;
+    }
+    
+    console.log('Отправляемые данные:', updateData);
+    
     return this.request<ApiTask>(`/tasks/${id}`, {
       method: 'PUT',
-      body: JSON.stringify({ done: task.done }),
+      body: JSON.stringify(updateData),
     });
   }
 

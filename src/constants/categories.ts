@@ -1,4 +1,5 @@
 import { List, Inbox, CheckSquare, Calendar, CalendarDays, CheckCircle2 } from 'lucide-react';
+import { TaskCategory, CategoryInfo } from '../types/Task';
 
 export const CATEGORIES = [
   {
@@ -33,8 +34,6 @@ export const CATEGORIES = [
   }
 ] as const;
 
-export type TaskCategory = typeof CATEGORIES[number]['id'];
-
-export function getCategoryInfo(category: TaskCategory) {
-  return CATEGORIES.find(c => c.id === category);
+export function getCategoryInfo(category: TaskCategory): CategoryInfo | undefined {
+  return CATEGORIES.find(c => c.id === category) as CategoryInfo | undefined;
 } 

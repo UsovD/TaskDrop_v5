@@ -3,8 +3,9 @@
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  font-size: 18px;
-  color: var(--text-secondary);
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.5);
+  background-color: #000000;
 }
 
 .error-message {
@@ -59,7 +60,7 @@ body {
 .app {
   max-width: 800px;
   margin: 0 auto;
-  padding: 20px;
+  animation: appFadeIn 0.1s ease-out;
 }
 
 .app-header {
@@ -222,26 +223,39 @@ body {
   cursor: not-allowed;
 }
 
-/* Анимации */
+/* Page Transition Animations */
+.page-transition {
+  animation: fadeIn 0.15s ease-out;
+  min-height: 100vh;
+  background-color: #000000;
+  opacity: 1;
+  transition: opacity 0.15s ease-out;
+}
+
+.page-transition.opacity-0 {
+  opacity: 0;
+}
+
+.page-transition.opacity-100 {
+  opacity: 1;
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(-10px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
   }
 }
 
-@keyframes slideIn {
+/* Optimized animations for smoother transitions */
+@keyframes appFadeIn {
   from {
     opacity: 0;
-    transform: translateX(-10px);
   }
   to {
     opacity: 1;
-    transform: translateX(0);
   }
 }
 

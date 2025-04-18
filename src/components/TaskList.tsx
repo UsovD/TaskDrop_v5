@@ -1,12 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Task, TaskCategory } from '../types/Task';
 import { CategorySelector } from './CategorySelector';
+import { CategoryPage } from './CategoryPage';
 
 interface TaskListProps {
   tasks: Task[];
   onAddTask: (task: Omit<Task, 'id' | 'createdAt'>) => void;
   onEditTask: (task: Task) => void;
   onToggleTask: (taskId: string) => void;
+  isAddingTask?: boolean;
+  isLoading?: boolean;
 }
 
 export const TaskList: React.FC<TaskListProps> = ({
@@ -14,9 +17,24 @@ export const TaskList: React.FC<TaskListProps> = ({
   onAddTask,
   onEditTask,
   onToggleTask,
+  isAddingTask = false,
+  isLoading = false,
 }) => {
   const [currentCategory, setCurrentCategory] = useState<TaskCategory>('all');
-  const [isAdding, setIsAdding] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<TaskCategory | null>(null);
+  const [isAdding, setIsAdding] = useState(isAddingTask);
+
+  // Выводим все задачи в консоль при загрузке компонента
+  useEffect(() => {
+    console.log('Все задачи в базе данных:', tasks);
+  }, [tasks]);
+
+  // Update isAdding when isAddingTask prop changes
+  useEffect(() => {
+    if (isAddingTask) {
+      setIsAdding(true);
+    }
+  }, [isAddingTask]);
 
   const handleAddTask = (title: string, date?: Date, time?: string) => {
     if (title.trim()) {
@@ -53,6 +71,30 @@ export const TaskList: React.FC<TaskListProps> = ({
     }
   };
 
+  const handleSelectCategory = (category: TaskCategory) => {
+    setCurrentCategory(category);
+    setSelectedCategory(category);
+  };
+
+  const handleBack = () => {
+    setSelectedCategory(null);
+  };
+
+  // Если выбрана категория, показываем страницу категории
+  if (selectedCategory) {
+    return (
+      <CategoryPage
+        tasks={tasks}
+        category={selectedCategory}
+        onBack={handleBack}
+        onToggleTask={onToggleTask}
+        onEditTask={onEditTask}
+        onAddTask={onAddTask}
+      />
+    );
+  }
+
+  // Иначе показываем основную страницу с выбором категорий
   return (
     <div className="min-h-screen bg-gradient-to-b from-black to-zinc-900/80">
       <div className="max-w-2xl mx-auto p-6">
@@ -65,17 +107,23 @@ export const TaskList: React.FC<TaskListProps> = ({
           </p>
         </div>
 
-        <div>
-          <CategorySelector
-            currentCategory={currentCategory}
-            onSelectCategory={setCurrentCategory}
-            tasks={tasks}
-            isAdding={isAdding}
-            onAddClick={() => setIsAdding(true)}
-            onCancelAdd={() => setIsAdding(false)}
-            onSubmitTask={handleAddTask}
-          />
-        </div>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="text-zinc-500 text-sm">Загрузка...</div>
+          </div>
+        ) : (
+          <div>
+            <CategorySelector
+              currentCategory={currentCategory}
+              onSelectCategory={handleSelectCategory}
+              tasks={tasks}
+              isAdding={isAdding}
+              onAddClick={() => setIsAdding(true)}
+              onCancelAdd={() => setIsAdding(false)}
+              onSubmitTask={handleAddTask}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

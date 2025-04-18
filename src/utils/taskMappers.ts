@@ -87,9 +87,9 @@ export const mapApiTaskToTask = (apiTask: ApiTask): Task => {
   };
 };
 
-export const mapTaskToApiTask = (task: Omit<Task, 'id' | 'createdAt'>): Omit<ApiTask, 'id' | 'created_at'> => {
+export const mapTaskToApiTask = (task: Partial<Task>): Partial<ApiTask> => {
   // Формируем текст с информацией о дате и времени, если они есть
-  let taskText = task.title;
+  let taskText = task.title || '';
   
   if (task.dueDate) {
     const formattedDate = task.dueDate.toLocaleDateString('ru-RU', {
@@ -99,9 +99,16 @@ export const mapTaskToApiTask = (task: Omit<Task, 'id' | 'createdAt'>): Omit<Api
     taskText = `${taskText} (Срок: ${formattedDate})`;
   }
   
-  return {
+  const apiTask: Partial<ApiTask> = {
     text: taskText,
-    done: task.completed,
+    done: task.completed ?? false,
     user_id: 1 // Временное решение
   };
+  
+  // Если есть id задачи, добавляем его в apiTask
+  if (task.id) {
+    apiTask.id = parseInt(task.id, 10);
+  }
+  
+  return apiTask;
 }; 

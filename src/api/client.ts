@@ -91,7 +91,7 @@ class ApiClient {
       method: 'POST',
       body: JSON.stringify({
         user_id: userId,
-        text: task.title,
+        title: task.title,
         description: task.description,
         due_date: task.due_date,
         due_time: task.due_time,

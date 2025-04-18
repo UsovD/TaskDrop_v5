@@ -1,12 +1,23 @@
 {
   "version": 2,
+  "functions": {
+    "api/**/*.js": {
+      "runtime": "nodejs18.x"
+    }
+  },
+  "build": {
+    "env": {
+      "NODE_ENV": "production"
+    }
+  },
   "builds": [
     {
       "src": "package.json",
       "use": "@vercel/static-build",
       "config": {
-        "buildCommand": "npm install && npm run build",
-        "outputDirectory": "dist"
+        "buildCommand": "npm ci && npm run build",
+        "outputDirectory": "dist",
+        "installCommand": "npm install"
       }
     }
   ],

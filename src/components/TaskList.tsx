@@ -4,6 +4,50 @@ import { CategorySelector } from './CategorySelector';
 import { CategoryPage } from './CategoryPage';
 import { UserInfo } from './UserInfo';
 
+// Новый компонент отладки
+const DebugInfo: React.FC = () => {
+  const [telegramData, setTelegramData] = useState<any>(null);
+  
+  useEffect(() => {
+    // Получаем все доступные данные из Telegram WebApp
+    const data = {
+      telegramWebAppExists: !!window.Telegram?.WebApp,
+      initDataExists: !!window.Telegram?.WebApp?.initData,
+      initDataUnsafeExists: !!window.Telegram?.WebApp?.initDataUnsafe,
+      userExists: !!window.Telegram?.WebApp?.initDataUnsafe?.user,
+    };
+    
+    setTelegramData(data);
+    
+    // Выводим подробную информацию в консоль
+    console.log('🔍 DEBUG: WebApp данные', {
+      window_Telegram: !!window.Telegram,
+      WebApp: !!window.Telegram?.WebApp,
+      initData: window.Telegram?.WebApp?.initData,
+      initDataUnsafe: window.Telegram?.WebApp?.initDataUnsafe,
+      user: window.Telegram?.WebApp?.initDataUnsafe?.user,
+    });
+  }, []);
+  
+  if (!telegramData) return null;
+  
+  return (
+    <div style={{ 
+      padding: '10px', 
+      marginTop: '10px',
+      border: '1px solid rgba(255,255,255,0.1)',
+      borderRadius: '8px',
+      fontSize: '12px'
+    }}>
+      <h3 style={{ margin: '0 0 8px 0', fontSize: '14px' }}>🔧 Отладочная информация</h3>
+      <div>WebApp доступен: {telegramData.telegramWebAppExists ? '✅' : '❌'}</div>
+      <div>initData существует: {telegramData.initDataExists ? '✅' : '❌'}</div>
+      <div>initDataUnsafe существует: {telegramData.initDataUnsafeExists ? '✅' : '❌'}</div>
+      <div>Данные пользователя доступны: {telegramData.userExists ? '✅' : '❌'}</div>
+    </div>
+  );
+};
+
 interface TaskListProps {
   tasks: Task[];
   onAddTask: (task: Omit<Task, 'id' | 'createdAt'>) => void;
@@ -126,6 +170,9 @@ export const TaskList: React.FC<TaskListProps> = ({
               onCancelAdd={() => setIsAdding(false)}
               onSubmitTask={handleAddTask}
             />
+            
+            {/* Добавляем компонент отладки */}
+            <DebugInfo />
           </div>
         )}
       </div>

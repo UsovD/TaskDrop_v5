@@ -42,26 +42,80 @@ function gracefulShutdown() {
     });
 }
 
+// Функция для получения или создания пользователя
+async function getOrCreateUser(msg) {
+  try {
+    const telegramUser = msg.from;
+    
+    // Проверяем, есть ли пользователь в базе
+    const response = await axios.get(`${apiUrl}/users/telegram/${telegramUser.id}`);
+    
+    if (response.status === 200 && !response.data.error) {
+      console.log(`👉 ✅ Найден существующий пользователь: ${telegramUser.first_name} (ID: ${response.data.id})`);
+      
+      // Сохраняем chat_id пользователя для уведомлений
+      userChatIds.set(response.data.id, msg.chat.id);
+      
+      return response.data;
+    }
+  } catch (error) {
+    // Пользователь не найден, создаем нового
+    console.log(`👉 ℹ️ Пользователь не найден в базе, создаем нового...`);
+  }
+  
+  try {
+    // Создаем пользователя
+    const userData = {
+      telegram_id: msg.from.id,
+      first_name: msg.from.first_name,
+      last_name: msg.from.last_name,
+      username: msg.from.username,
+      photo_url: null // Telegram не предоставляет URL фото в сообщении
+    };
+    
+    const response = await axios.post(`${apiUrl}/users`, userData);
+    
+    if (response.status === 200 || response.status === 201) {
+      console.log(`👉 ✅ Создан новый пользователь: ${userData.first_name} (ID: ${response.data.id})`);
+      
+      // Сохраняем chat_id пользователя для уведомлений
+      userChatIds.set(response.data.id, msg.chat.id);
+      
+      return response.data;
+    } else {
+      throw new Error(`Ошибка при создании пользователя: ${response.statusText}`);
+    }
+  } catch (error) {
+    console.error('Ошибка при создании пользователя:', error);
+    throw error;
+  }
+}
+
 // Обработчик команды /start
-bot.onText(/\/start/, (msg) => {
+bot.onText(/\/start/, async (msg) => {
   const chatId = msg.chat.id;
-  const userName = msg.from.first_name || 'пользователь';
   
-  // Сохраняем chat_id пользователя
-  userChatIds.set(1, chatId); // Для упрощения привязываем к user_id=1, можно расширить эту логику
-  
-  bot.sendMessage(chatId, `Привет, ${userName}! Я бот для управления задачами TaskDrop. Вот что я умею:
-  
+  try {
+    // Получаем или создаем пользователя
+    const user = await getOrCreateUser(msg);
+    const userName = user.first_name || 'пользователь';
+    
+    bot.sendMessage(chatId, `Привет, ${userName}! Я бот для управления задачами TaskDrop. Вот что я умею:
+    
 /tasks - показать список активных задач
 /add - добавить новую задачу
 /help - показать информацию о командах
 /webapp - открыть веб-приложение`, {
-    reply_markup: {
-      inline_keyboard: [
-        [{ text: '🚀 Открыть приложение', web_app: { url: webAppUrl } }]
-      ]
-    }
-  });
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '🚀 Открыть приложение', web_app: { url: webAppUrl } }]
+        ]
+      }
+    });
+  } catch (error) {
+    console.error('Ошибка при обработке команды /start:', error);
+    bot.sendMessage(chatId, 'Произошла ошибка при инициализации. Пожалуйста, попробуйте позже.');
+  }
 });
 
 // Обработчик команды /help
@@ -100,11 +154,14 @@ bot.onText(/\/tasks/, async (msg) => {
   const chatId = msg.chat.id;
   
   try {
+    // Получаем пользователя
+    const user = await getOrCreateUser(msg);
+    
     // Сообщаем пользователю, что загружаем задачи
     bot.sendMessage(chatId, 'Загружаю список задач...');
     
-    // Делаем запрос к API для получения задач
-    const response = await axios.get(`${apiUrl}/tasks?user_id=1`);
+    // Делаем запрос к API для получения задач с корректным ID пользователя
+    const response = await axios.get(`${apiUrl}/tasks?user_id=${user.id}`);
     const tasks = response.data;
     
     if (tasks.length === 0) {
@@ -171,14 +228,17 @@ bot.onText(/\/add (.+)/, async (msg, match) => {
   }
   
   try {
-    // Отправляем запрос к API для создания новой задачи
+    // Получаем пользователя
+    const user = await getOrCreateUser(msg);
+    
+    // Отправляем запрос к API для создания новой задачи с корректным ID пользователя
     const response = await axios.post(`${apiUrl}/tasks`, {
       title: taskTitle,
-      user_id: 1,
+      user_id: user.id, // Используем ID пользователя из базы данных
       done: false
     });
     
-    if (response.data && response.data.success) {
+    if (response.data && response.data.id) {
       bot.sendMessage(chatId, `✅ Задача "${taskTitle}" успешно добавлена!`, {
         reply_markup: {
           inline_keyboard: [
@@ -188,7 +248,7 @@ bot.onText(/\/add (.+)/, async (msg, match) => {
         }
       });
     } else {
-      throw new Error('Ответ API не содержит подтверждения успешного создания задачи');
+      throw new Error('Ответ API не содержит ID созданной задачи');
     }
   } catch (error) {
     console.error('Ошибка при создании задачи:', error);

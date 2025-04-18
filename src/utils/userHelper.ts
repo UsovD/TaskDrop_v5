@@ -160,4 +160,41 @@ const getMockUserData = (): UserData => {
     username: 'test_user',
     photo_url: 'https://i.pravatar.cc/300?u=test_user'
   };
+};
+
+/**
+ * Возвращает Telegram ID пользователя для отладки
+ */
+export const getTelegramDebugInfo = (): { telegramId: number | null, webAppAvailable: boolean, userId: number | null } => {
+  try {
+    const telegramWebApp = window.Telegram?.WebApp;
+    const webAppAvailable = Boolean(telegramWebApp);
+    const telegramUser = telegramWebApp?.initDataUnsafe?.user;
+    const telegramId = telegramUser?.id || null;
+    
+    // Пытаемся получить текущий userId из localStorage
+    let userId = null;
+    try {
+      const userData = localStorage.getItem('userData');
+      if (userData) {
+        const parsed = JSON.parse(userData);
+        userId = parsed?.id || null;
+      }
+    } catch (e) {
+      console.error('Ошибка при чтении userId из localStorage:', e);
+    }
+    
+    return {
+      telegramId,
+      webAppAvailable,
+      userId
+    };
+  } catch (error) {
+    console.error('Ошибка получения информации о Telegram ID:', error);
+    return {
+      telegramId: null,
+      webAppAvailable: false,
+      userId: null
+    };
+  }
 }; 

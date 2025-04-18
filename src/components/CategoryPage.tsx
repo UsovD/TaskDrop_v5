@@ -20,7 +20,6 @@ export const CategoryPage: React.FC<CategoryPageProps> = ({
   category,
   onBack,
   onToggleTask,
-  onEditTask,
   onAddTask,
 }) => {
   const [isAdding, setIsAdding] = useState(false);

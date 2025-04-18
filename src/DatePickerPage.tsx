@@ -109,12 +109,14 @@ export const DatePickerPage: React.FC = () => {
           
           // Устанавливаем таймаут для анимации
           setTimeout(() => {
-            // Используем абсолютный путь вместо относительного
-            const url = `/edit-task/${taskId}`;
-            console.log(`Перенаправляем на страницу редактирования задачи: ${url}`);
+            // Получаем базовый URL приложения
+            const baseUrl = window.location.origin;
+            // Формируем полный URL для перенаправления
+            const fullUrl = `${baseUrl}/edit-task/${taskId}`;
+            console.log(`Перенаправляем на страницу редактирования задачи: ${fullUrl}`);
             
-            // Вместо простого navigate используем window.location
-            window.location.href = url;
+            // Перенаправляем с полным URL
+            window.location.href = fullUrl;
           }, 70);
         } catch (err) {
           console.error('Ошибка при обновлении задачи:', err);
@@ -122,7 +124,11 @@ export const DatePickerPage: React.FC = () => {
           
           // Даже при ошибке возвращаемся на страницу редактирования
           setTimeout(() => {
-            window.location.href = `/edit-task/${taskId}`;
+            // Получаем базовый URL приложения
+            const baseUrl = window.location.origin;
+            // Полный URL для перенаправления
+            const fullUrl = `${baseUrl}/edit-task/${taskId}`;
+            window.location.href = fullUrl;
           }, 70);
         }
       } else {

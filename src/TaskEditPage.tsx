@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import { Task, TaskCategory } from './types/Task';
+import { Task } from './types/Task';
 import { ChevronLeft } from 'lucide-react';
 import { apiClient } from './api/client';
 import { mapApiTaskToTask } from './utils/taskMappers';

@@ -80,8 +80,8 @@ export const DatePickerPage: React.FC = () => {
     setIsExiting(true);
     
     try {
-      // Если это редактирование существующей задачи
-      if (returnToEdit && taskId) {
+      // Если есть ID задачи - значит это редактирование существующей задачи
+      if (taskId) {
         // Загружаем текущие данные задачи
         const tasks = await apiClient.getTasks();
         const taskToUpdate = tasks.find(t => t.id === taskId);
@@ -102,7 +102,7 @@ export const DatePickerPage: React.FC = () => {
           await apiClient.updateTask(taskId, updatedTask);
           console.log('Задача успешно обновлена на сервере');
           
-          // Затем возвращаемся на страницу редактирования
+          // Всегда возвращаемся на страницу редактирования с указанным ID
           setTimeout(() => {
             navigate(`/edit-task/${taskId}`, { 
               state: { 
@@ -118,7 +118,7 @@ export const DatePickerPage: React.FC = () => {
           setTimeout(() => navigate('/'), 70);
         }
       } else {
-        // Просто возвращаемся на главную страницу с выбранными параметрами
+        // Если нет ID задачи, возвращаемся на главную с параметрами для создания новой задачи
         setTimeout(() => {
           navigate('/', { 
             state: { 

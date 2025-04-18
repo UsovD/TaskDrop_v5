@@ -34,7 +34,6 @@ const MainPage: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isShowingTasks, setIsShowingTasks] = useState(false);
   const [isAddingTask, setIsAddingTask] = useState(false);
   const location = useLocation();
 
@@ -155,22 +154,6 @@ const MainPage: React.FC = () => {
     }
   };
 
-  const showAllTasks = () => {
-    setIsShowingTasks(true);
-    console.table(tasks.map(task => ({
-      id: task.id,
-      title: task.title,
-      category: task.category,
-      completed: task.completed,
-      dueDate: task.dueDate ? task.dueDate.toLocaleDateString('ru-RU') : 'Нет',
-      createdAt: task.createdAt ? task.createdAt.toLocaleDateString('ru-RU') : 'Нет'
-    })));
-    
-    setTimeout(() => {
-      setIsShowingTasks(false);
-    }, 3000);
-  };
-
   return (
     <div className="app">
       {error && (
@@ -179,27 +162,6 @@ const MainPage: React.FC = () => {
           <button onClick={() => setError(null)}>✕</button>
         </div>
       )}
-      
-      <div className="tasks-info">
-        <button 
-          onClick={showAllTasks}
-          className="show-tasks-button"
-          style={{
-            position: 'fixed',
-            bottom: '20px',
-            right: '20px',
-            padding: '10px 15px',
-            background: '#3b82f6',
-            color: 'white',
-            borderRadius: '6px',
-            border: 'none',
-            zIndex: 999,
-            cursor: 'pointer'
-          }}
-        >
-          {isShowingTasks ? 'Задачи выведены в консоль' : 'Показать все задачи'}
-        </button>
-      </div>
       
       <TaskList
         tasks={tasks}

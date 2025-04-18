@@ -23,6 +23,9 @@ let isShuttingDown = false;
 process.on('SIGINT', gracefulShutdown);
 process.on('SIGTERM', gracefulShutdown);
 
+// Храним chat_id пользователей для уведомлений
+const userChatIds = new Map();
+
 // Функция корректного завершения работы бота
 function gracefulShutdown() {
   console.log('Получен сигнал завершения, останавливаю бота...');
@@ -43,6 +46,9 @@ function gracefulShutdown() {
 bot.onText(/\/start/, (msg) => {
   const chatId = msg.chat.id;
   const userName = msg.from.first_name || 'пользователь';
+  
+  // Сохраняем chat_id пользователя
+  userChatIds.set(1, chatId); // Для упрощения привязываем к user_id=1, можно расширить эту логику
   
   bot.sendMessage(chatId, `Привет, ${userName}! Я бот для управления задачами TaskDrop. Вот что я умею:
   
@@ -323,6 +329,37 @@ bot.on('callback_query', async (callbackQuery) => {
     }
   } else if (data === 'cancel_forward') {
     bot.sendMessage(chatId, 'Действие отменено.');
+  } else if (data.startsWith('complete_task_')) {
+    const taskId = data.split('_')[2];
+    
+    try {
+      // Отправляем запрос к API для изменения статуса задачи
+      await axios.put(`${apiUrl}/tasks/${taskId}`, {
+        done: true
+      });
+      
+      // Обновляем сообщение с уведомлением
+      bot.editMessageText(`✅ *Задача выполнена!*\n\n${callbackQuery.message.text.split('\n\n').slice(1).join('\n\n')}`, {
+        chat_id: chatId,
+        message_id: callbackQuery.message.message_id,
+        parse_mode: 'Markdown',
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '🚀 Открыть в приложении', web_app: { url: webAppUrl } }]
+          ]
+        }
+      });
+      
+      // Отвечаем на callback_query
+      bot.answerCallbackQuery(callbackQuery.id, {
+        text: 'Задача отмечена как выполненная!'
+      });
+    } catch (error) {
+      console.error('Ошибка при изменении статуса задачи:', error);
+      bot.answerCallbackQuery(callbackQuery.id, {
+        text: 'Произошла ошибка. Попробуйте снова позже.'
+      });
+    }
   }
   
   // Обязательно ответить на callback запрос
@@ -354,6 +391,162 @@ bot.on('polling_error', (error) => {
         console.error('Ошибка при перезапуске polling:', err);
       });
   }
+});
+
+// Функция для проверки и отправки уведомлений
+async function checkNotifications() {
+  if (isShuttingDown) return;
+  
+  try {
+    // Получаем все активные задачи
+    const response = await axios.get(`${apiUrl}/tasks?user_id=1`);
+    const tasks = response.data;
+    
+    // Текущая дата и время
+    const now = new Date();
+    const currentDate = now.toISOString().split('T')[0]; // YYYY-MM-DD
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+    
+    // Фильтруем задачи, которые нужно напомнить
+    for (const task of tasks) {
+      // Пропускаем выполненные задачи
+      if (task.done) continue;
+      
+      // Проверяем только задачи с датой и временем
+      if (!task.due_date || !task.due_time || !task.notification) continue;
+      
+      // Разбираем время задачи
+      const [taskHour, taskMinute] = task.due_time.split(':').map(Number);
+      
+      // Время для отправки уведомления в зависимости от настройки
+      let notificationTime = new Date(`${task.due_date}T${task.due_time}`);
+      
+      switch (task.notification) {
+        case 'За 5 минут':
+          notificationTime.setMinutes(notificationTime.getMinutes() - 5);
+          break;
+        case 'За 10 минут':
+          notificationTime.setMinutes(notificationTime.getMinutes() - 10);
+          break;
+        case 'За 15 минут':
+          notificationTime.setMinutes(notificationTime.getMinutes() - 15);
+          break;
+        case 'За 30 минут':
+          notificationTime.setMinutes(notificationTime.getMinutes() - 30);
+          break;
+        case 'За 1 час':
+          notificationTime.setHours(notificationTime.getHours() - 1);
+          break;
+        case 'За 2 часа':
+          notificationTime.setHours(notificationTime.getHours() - 2);
+          break;
+        case 'За день':
+          notificationTime.setDate(notificationTime.getDate() - 1);
+          break;
+      }
+      
+      // Проверяем, наступило ли время для отправки уведомления
+      // С точностью до минуты
+      const notificationHour = notificationTime.getHours();
+      const notificationMinute = notificationTime.getMinutes();
+      const notificationDate = notificationTime.toISOString().split('T')[0];
+      
+      // Если текущее время совпадает с временем отправки уведомления (с точностью до минуты)
+      if (
+        currentDate === notificationDate && 
+        currentHour === notificationHour && 
+        currentMinute === notificationMinute
+      ) {
+        // Отправляем уведомление пользователю, если знаем его chat_id
+        const userId = task.user_id || 1;
+        const chatId = userChatIds.get(userId);
+        
+        if (chatId) {
+          // Сообщение с уведомлением
+          let message = `🔔 *Напоминание о задаче!*\n\n`;
+          message += `*${task.title}*\n`;
+          
+          if (task.description) {
+            message += `_${task.description}_\n\n`;
+          }
+          
+          message += `📅 Срок: ${task.due_date}\n`;
+          message += `⏰ Время: ${task.due_time}\n`;
+          
+          bot.sendMessage(chatId, message, {
+            parse_mode: 'Markdown',
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: '✅ Отметить выполненной', callback_data: `complete_task_${task.id}` }],
+                [{ text: '🚀 Открыть в приложении', web_app: { url: `${webAppUrl}/edit-task/${task.id}` } }]
+              ]
+            }
+          }).catch(err => {
+            console.error(`Ошибка при отправке уведомления для задачи ${task.id}:`, err.message);
+          });
+        } else {
+          console.log(`Нет зарегистрированного chat_id для пользователя с ID ${userId}`);
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Ошибка при проверке уведомлений:', error.message);
+  } finally {
+    // Запускаем проверку снова через минуту, если бот активен
+    if (!isShuttingDown) {
+      setTimeout(checkNotifications, 60000); // 1 минута
+    }
+  }
+}
+
+// Запускаем первую проверку уведомлений
+setTimeout(checkNotifications, 5000); // Запускаем через 5 секунд после старта бота
+
+// Обработчик команды /test для тестирования уведомлений
+bot.onText(/\/test/, (msg) => {
+  const chatId = msg.chat.id;
+  
+  // Сохраняем chat_id пользователя, если еще не сохранен
+  userChatIds.set(1, chatId);
+  
+  // Текущее время для отладки
+  const now = new Date();
+  const currentTime = now.toLocaleTimeString('ru-RU');
+  const currentDate = now.toLocaleDateString('ru-RU');
+  
+  // Отправляем тестовое уведомление
+  let message = `🔔 *Тестовое уведомление*\n\n`;
+  message += `Текущее время: ${currentTime}\n`;
+  message += `Текущая дата: ${currentDate}\n\n`;
+  message += `Ваш chat_id: ${chatId} сохранен для получения уведомлений.\n`;
+  message += `Количество сохраненных пользователей: ${userChatIds.size}`;
+  
+  bot.sendMessage(chatId, message, {
+    parse_mode: 'Markdown',
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '📋 Посмотреть задачи', callback_data: 'show_tasks' }],
+        [{ text: '🚀 Открыть приложение', web_app: { url: webAppUrl } }]
+      ]
+    }
+  });
+});
+
+bot.onText(/\/command/, (msg) => {
+  // Установка команд для бота
+  bot.setMyCommands([
+    { command: '/start', description: 'Начать работу с ботом' },
+    { command: '/help', description: 'Показать список команд' },
+    { command: '/tasks', description: 'Показать список задач' },
+    { command: '/add', description: 'Добавить новую задачу' },
+    { command: '/webapp', description: 'Открыть веб-приложение' },
+    { command: '/test', description: 'Проверить уведомления' }
+  ]).then(() => {
+    bot.sendMessage(msg.chat.id, 'Команды бота обновлены!');
+  }).catch((error) => {
+    bot.sendMessage(msg.chat.id, 'Произошла ошибка при обновлении команд: ' + error.message);
+  });
 });
 
 console.log('Бот TaskDrop запущен!'); 

@@ -4,7 +4,7 @@ import { Task } from './types/Task';
 import { TaskList } from './components/TaskList';
 import { DatePickerPage } from './DatePickerPage';
 import { TaskEditPage } from './TaskEditPage';
-import { UserInfo } from './components/UserInfo';
+import { AppHeader } from './components/AppHeader';
 import { apiClient } from './api/client';
 import { mapApiTaskToTask, mapTaskToApiTask } from './utils/taskMappers';
 import './css/components.css';
@@ -31,7 +31,8 @@ const PageTransition: React.FC<{ children: React.ReactNode }> = ({ children }) =
   );
 };
 
-const MainPage: React.FC = () => {
+// Компонент для основного контента без заголовка (для использования на внутренних страницах)
+const MainContent: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -156,19 +157,13 @@ const MainPage: React.FC = () => {
   };
 
   return (
-    <div className="app">
+    <>
       {error && (
         <div className="error-message">
           {error}
           <button onClick={() => setError(null)}>✕</button>
         </div>
       )}
-      
-      <div className="app-header">
-        <h1 className="m-0 pt-4 px-4">TaskDrop</h1>
-        <p className="text-subtitle px-4 mt-1 mb-0">Управляй своими делами</p>
-        <UserInfo />
-      </div>
       
       <TaskList
         tasks={tasks}
@@ -178,6 +173,16 @@ const MainPage: React.FC = () => {
         isAddingTask={isAddingTask}
         isLoading={isLoading}
       />
+    </>
+  );
+};
+
+// Компонент для главной страницы с заголовком
+const MainPage: React.FC = () => {
+  return (
+    <div className="app">
+      <AppHeader />
+      <MainContent />
     </div>
   );
 };
@@ -193,12 +198,16 @@ const AppRoutes: React.FC = () => {
         } />
         <Route path="/datepicker" element={
           <PageTransition>
-            <DatePickerPage key="datepicker" />
+            <div className="app">
+              <DatePickerPage key="datepicker" />
+            </div>
           </PageTransition>
         } />
         <Route path="/edit-task/:taskId" element={
           <PageTransition>
-            <TaskEditPage key="taskedit" />
+            <div className="app">
+              <TaskEditPage key="taskedit" />
+            </div>
           </PageTransition>
         } />
       </Routes>

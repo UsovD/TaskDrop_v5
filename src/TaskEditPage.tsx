@@ -83,10 +83,7 @@ export const TaskEditPage: React.FC = () => {
       // Конвертируем обратно в формат для фронтенда
       const updatedTask = mapApiTaskToTask(updatedApiTask);
       
-      // Показываем уведомление об успешном сохранении
-      alert('Задача успешно сохранена');
-      
-      // Остаемся на текущей странице с обновленными данными
+      // Тихо перезагружаем страницу с обновленными данными
       navigate(`/edit-task/${taskId}`, { 
         state: { 
           task: updatedTask

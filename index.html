@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+    <meta name="theme-color" content="#000000"/>
+    <meta name="apple-mobile-web-app-capable" content="yes"/>
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+    <meta name="format-detection" content="telephone=no"/>
+    <meta name="mobile-web-app-capable" content="yes"/>
+    <title>TaskDrop</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script>
+      // Функция для установки реальной высоты области просмотра
+      function setViewportHeight() {
+        // Получаем высоту видимой области
+        let vh = window.innerHeight * 0.01;
+        document.documentElement.style.setProperty('--vh', `${vh}px`);
+      }
+
+      // Устанавливаем высоту при загрузке
+      window.addEventListener('load', setViewportHeight);
+      
+      // Устанавливаем высоту при изменении размера окна или ориентации
+      window.addEventListener('resize', setViewportHeight);
+      window.addEventListener('orientationchange', () => {
+        setTimeout(setViewportHeight, 200); // Задержка для iOS
+      });
+      
+      // Запускаем сразу для предотвращения мигания при загрузке
+      setViewportHeight();
+    </script>
+    <style>
+      :root {
+        --vh: 1vh;
+      }
+      
+      * {
+        -webkit-tap-highlight-color: transparent;
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      
+      html, body {
+        background-color: #000000;
+        color: #ffffff;
+        width: 100%;
+        height: 100%;
+        height: 100vh;
+        height: calc(var(--vh, 1vh) * 100);
+        overflow: hidden;
+      }
+      
+      #root {
+        background-color: #000000;
+        height: 100%;
+        height: 100vh;
+        height: calc(var(--vh, 1vh) * 100);
+        width: 100%;
+        overflow-y: auto;
+        overflow-x: hidden;
+        -webkit-overflow-scrolling: touch;
+        touch-action: manipulation;
+      }
+      
+      /* Специальные стили для Telegram */
+      body.telegram {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+      }
+    </style>
+    <script type="module" crossorigin src="/assets/index-D8torVA-.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-BI7pNqe_.css">
+  </head>
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        // Проверяем, запущено ли приложение в Telegram WebApp
+        if (window.Telegram && window.Telegram.WebApp) {
+          // Добавляем класс к body
+          document.body.classList.add('telegram');
+          
+          // Используем Telegram WebApp API для расширения приложения
+          window.Telegram.WebApp.ready();
+          window.Telegram.WebApp.expand();
+          
+          // Устанавливаем цвет фона
+          if (window.Telegram.WebApp.setBackgroundColor) {
+            window.Telegram.WebApp.setBackgroundColor('#000000');
+          }
+          
+          // Отключаем подсказку при возврате
+          if (window.Telegram.WebApp.disableClosingConfirmation) {
+            window.Telegram.WebApp.disableClosingConfirmation();
+          }
+          
+          // Получаем реальную высоту экрана от Telegram WebApp
+          const tgHeight = window.Telegram.WebApp.viewportHeight;
+          if (tgHeight) {
+            document.documentElement.style.setProperty('--vh', `${tgHeight / 100}px`);
+          }
+          
+          // Устанавливаем обработчик на изменение темы
+          window.Telegram.WebApp.onEvent('themeChanged', function() {
+            // Обновляем высоту при изменении темы (это может изменить размеры интерфейса)
+            const tgHeight = window.Telegram.WebApp.viewportHeight;
+            if (tgHeight) {
+              document.documentElement.style.setProperty('--vh', `${tgHeight / 100}px`);
+            }
+          });
+          
+          // Устанавливаем обработчик на изменение viewPort
+          window.Telegram.WebApp.onEvent('viewportChanged', function(event) {
+            // Обновляем высоту при изменении viewport
+            const tgHeight = window.Telegram.WebApp.viewportHeight;
+            if (tgHeight) {
+              document.documentElement.style.setProperty('--vh', `${tgHeight / 100}px`);
+            }
+          });
+          
+          console.log('Telegram WebApp initialized:', {
+            viewportHeight: window.Telegram.WebApp.viewportHeight,
+            viewportStableHeight: window.Telegram.WebApp.viewportStableHeight,
+            isExpanded: window.Telegram.WebApp.isExpanded
+          });
+        }
+      });
+    </script>
+  </body>
+</html>

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { ChevronLeft, ChevronRight, Clock, Bell, X } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { apiClient } from './api/client';
+import { ApiTask } from './api/client';
 
 const DAYS_OF_WEEK = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 const MONTHS = [
@@ -74,33 +76,66 @@ export const DatePickerPage: React.FC = () => {
   };
 
   // Функция для применения выбранной даты с анимацией
-  const handleApply = () => {
+  const handleApply = async () => {
     setIsExiting(true);
     
-    setTimeout(() => {
+    try {
+      // Если это редактирование существующей задачи
       if (returnToEdit && taskId) {
-        // Возврат на страницу редактирования задачи
-        navigate(`/edit-task/${taskId}`, { 
-          state: { 
-            selectedDate: selectedDate?.toISOString(),
-            selectedTime,
-            selectedNotification,
-            taskTitle
-          } 
-        });
+        // Загружаем текущие данные задачи
+        const tasks = await apiClient.getTasks();
+        const taskToUpdate = tasks.find(t => t.id === taskId);
+        
+        if (taskToUpdate) {
+          console.log('Обновляем задачу с ID:', taskId);
+          
+          // Обновляем поля, связанные с датой
+          const updatedTask: Partial<Omit<ApiTask, "id" | "created_at">> = {
+            due_date: selectedDate ? selectedDate.toISOString().split('T')[0] : undefined,
+            due_time: selectedTime || undefined,
+            notification: selectedNotification || undefined
+          };
+          
+          console.log('Отправляем обновленные данные:', updatedTask);
+          
+          // Отправляем данные на сервер
+          await apiClient.updateTask(taskId, updatedTask);
+          console.log('Задача успешно обновлена на сервере');
+          
+          // Затем возвращаемся на страницу редактирования
+          setTimeout(() => {
+            navigate(`/edit-task/${taskId}`, { 
+              state: { 
+                selectedDate: selectedDate?.toISOString(),
+                selectedTime,
+                selectedNotification,
+                taskTitle
+              } 
+            });
+          }, 70);
+        } else {
+          console.error('Задача не найдена');
+          setTimeout(() => navigate('/'), 70);
+        }
       } else {
-        // Возврат на главную страницу
-        navigate('/', { 
-          state: { 
-            selectedDate: selectedDate?.toISOString(),
-            selectedTime,
-            selectedNotification,
-            expandAddTask: true,
-            taskTitle
-          } 
-        });
+        // Просто возвращаемся на главную страницу с выбранными параметрами
+        setTimeout(() => {
+          navigate('/', { 
+            state: { 
+              selectedDate: selectedDate?.toISOString(),
+              selectedTime,
+              selectedNotification,
+              expandAddTask: true,
+              taskTitle
+            } 
+          });
+        }, 70);
       }
-    }, 70);
+    } catch (error) {
+      console.error('Ошибка при сохранении даты:', error);
+      alert('Произошла ошибка при сохранении. Пожалуйста, попробуйте снова.');
+      setIsExiting(false);
+    }
   };
 
   // Отображение времени

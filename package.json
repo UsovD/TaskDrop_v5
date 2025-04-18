@@ -4,11 +4,14 @@
   "version": "0.0.1",
   "type": "module",
   "homepage": "https://telegram-mini-apps.github.io/reactjs-template",
+  "engines": {
+    "node": ">=18.x"
+  },
   "scripts": {
     "deploy": "gh-pages -d dist",
     "dev": "vite",
     "dev:https": "cross-env HTTPS=true vite",
-    "build": "npx vite build",
+    "build": "node node_modules/vite/bin/vite.js build",
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "lint:fix": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0 --fix",
     "preview": "vite preview",

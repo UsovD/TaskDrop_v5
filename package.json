@@ -11,7 +11,7 @@
     "deploy": "gh-pages -d dist",
     "dev": "vite",
     "dev:https": "cross-env HTTPS=true vite",
-    "build": "node node_modules/vite/bin/vite.js build",
+    "build": "vite build",
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "lint:fix": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0 --fix",
     "preview": "vite preview",

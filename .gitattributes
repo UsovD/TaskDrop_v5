@@ -1,0 +1,7 @@
+# Указываем, что ветка master является основной для деплоя на Vercel
+* merge=ours
+
+# Обработка shell-скриптов
+*.sh linguist-detectable=true
+*.sh text eol=lf
+vercel-build.sh linguist-executable=true 

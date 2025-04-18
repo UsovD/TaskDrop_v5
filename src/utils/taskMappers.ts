@@ -1,6 +1,5 @@
 import { Task, TaskCategory, TaskPriority } from '../types/Task';
 import { ApiTask } from '../api/client';
-import { getUserData } from './userHelper';
 
 // Преобразуем задачу из API в задачу для фронтенда
 export const mapApiTaskToTask = (apiTask: ApiTask): Task => {

@@ -77,14 +77,22 @@ export const TaskEditPage: React.FC = () => {
       const apiTaskData = mapTaskToApiTask(editedTask);
       
       // Отправляем изменения на сервер
-      const updatedApiTask = await apiClient.updateTask(editedTask.id, apiTaskData);
+      const updatedApiTask = await apiClient.updateTask(String(editedTask.id), apiTaskData);
       console.log('Ответ от сервера:', updatedApiTask);
       
       // Конвертируем обратно в формат для фронтенда
       const updatedTask = mapApiTaskToTask(updatedApiTask);
       
-      // Возвращаемся на главную и передаем обновленную задачу
-      navigate('/', { state: { editedTask: updatedTask } });
+      // Показываем уведомление об успешном сохранении
+      alert('Задача успешно сохранена');
+      
+      // Остаемся на текущей странице с обновленными данными
+      navigate(`/edit-task/${taskId}`, { 
+        state: { 
+          task: updatedTask
+        },
+        replace: true // Заменяем текущую запись в истории навигации
+      });
     } catch (error) {
       console.error('Ошибка при сохранении задачи:', error);
       alert('Произошла ошибка при сохранении задачи');

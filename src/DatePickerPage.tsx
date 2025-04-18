@@ -78,75 +78,45 @@ export const DatePickerPage: React.FC = () => {
     setIsExiting(true);
     
     try {
-      // Если есть ID задачи - значит это редактирование существующей задачи
+      // Если есть ID задачи, обновляем её
       if (taskId) {
-        console.log('Ищем задачу по ID:', taskId, 'тип:', typeof taskId);
+        console.log('Обрабатываем выбор даты для задачи с ID:', taskId);
         
-        // Загружаем текущие данные задачи
-        const tasks = await apiClient.getTasks();
-        console.log('Загружено задач:', tasks.length);
-        console.log('ID первых трех задач:', tasks.slice(0, 3).map(t => ({ id: t.id, type: typeof t.id })));
+        // Создаем объект с обновленными данными
+        const updatedTask: Partial<Omit<ApiTask, "id" | "created_at">> = {
+          due_date: selectedDate ? selectedDate.toISOString().split('T')[0] : undefined,
+          due_time: selectedTime || undefined,
+          notification: selectedNotification || undefined
+        };
         
-        // Исправляем проблему с типами - сравниваем строковые представления ID
-        const taskToUpdate = tasks.find(t => String(t.id) === String(taskId));
+        console.log('Данные для обновления задачи:', updatedTask);
         
-        if (taskToUpdate) {
-          console.log('Найдена задача с ID:', taskToUpdate.id);
+        // Напрямую отправляем запрос на обновление задачи
+        try {
+          const result = await apiClient.updateTask(String(taskId), updatedTask);
+          console.log('Задача успешно обновлена на сервере:', result);
           
-          // Обновляем поля, связанные с датой
-          const updatedTask: Partial<Omit<ApiTask, "id" | "created_at">> = {
-            due_date: selectedDate ? selectedDate.toISOString().split('T')[0] : undefined,
-            due_time: selectedTime || undefined,
-            notification: selectedNotification || undefined
-          };
-          
-          console.log('Отправляем обновленные данные:', updatedTask);
-          
-          // Отправляем данные на сервер
-          await apiClient.updateTask(String(taskId), updatedTask);
-          console.log('Задача успешно обновлена на сервере');
-          
-          // Всегда возвращаемся на страницу редактирования с указанным ID
+          // Переходим на страницу редактирования задачи
           setTimeout(() => {
+            console.log(`Перенаправляем на страницу редактирования задачи: /edit-task/${taskId}`);
             navigate(`/edit-task/${taskId}`, { 
               state: { 
                 selectedDate: selectedDate?.toISOString(),
                 selectedTime,
                 selectedNotification,
-                taskTitle
+                taskTitle,
+                forceUpdate: new Date().getTime() // Добавляем временную метку для принудительного обновления
               } 
             });
           }, 70);
-        } else {
-          console.error('Задача не найдена. TaskId:', taskId);
-          console.log('Доступные ID задач:', tasks.map(t => t.id));
+        } catch (err) {
+          console.error('Ошибка при обновлении задачи:', err);
+          alert('Не удалось обновить дату. Пожалуйста, попробуйте снова.');
           
-          // Несмотря на ошибку поиска, пытаемся обновить задачу напрямую
-          try {
-            const updatedTask: Partial<Omit<ApiTask, "id" | "created_at">> = {
-              due_date: selectedDate ? selectedDate.toISOString().split('T')[0] : undefined,
-              due_time: selectedTime || undefined,
-              notification: selectedNotification || undefined
-            };
-            
-            console.log('Пытаемся обновить напрямую задачу с ID:', taskId);
-            await apiClient.updateTask(String(taskId), updatedTask);
-            console.log('Задача успешно обновлена напрямую');
-            
-            setTimeout(() => {
-              navigate(`/edit-task/${taskId}`, { 
-                state: { 
-                  selectedDate: selectedDate?.toISOString(),
-                  selectedTime,
-                  selectedNotification,
-                  taskTitle
-                } 
-              });
-            }, 70);
-          } catch (updateError) {
-            console.error('Не удалось обновить задачу напрямую:', updateError);
-            setTimeout(() => navigate('/'), 70);
-          }
+          // Даже при ошибке возвращаемся на страницу редактирования
+          setTimeout(() => {
+            navigate(`/edit-task/${taskId}`);
+          }, 70);
         }
       } else {
         // Если нет ID задачи, возвращаемся на главную с параметрами для создания новой задачи
@@ -164,6 +134,7 @@ export const DatePickerPage: React.FC = () => {
       }
     } catch (error) {
       console.error('Ошибка при сохранении даты:', error);
+      alert('Произошла ошибка при сохранении. Пожалуйста, попробуйте снова.');
       setIsExiting(false);
     }
   };

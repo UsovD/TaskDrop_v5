@@ -164,7 +164,6 @@ export const DatePickerPage: React.FC = () => {
       }
     } catch (error) {
       console.error('Ошибка при сохранении даты:', error);
-      alert('Произошла ошибка при сохранении. Пожалуйста, попробуйте снова.');
       setIsExiting(false);
     }
   };

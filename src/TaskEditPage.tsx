@@ -108,7 +108,6 @@ export const TaskEditPage: React.FC = () => {
         initialDate: dueDate?.toISOString(),
         initialTime: dueTime,
         initialNotification: notification,
-        returnToEdit: true,
         taskId: taskId,
         taskTitle: title // Передаем название задачи
       }

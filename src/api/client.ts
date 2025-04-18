@@ -146,16 +146,28 @@ class ApiClient {
 
   // Получение одной задачи по ID
   async getTask(id: string): Promise<ApiTask> {
-    // Так как API не предоставляет эндпоинт для получения одной задачи,
-    // получаем все задачи и находим нужную
-    const tasks = await this.getTasks();
-    const task = tasks.find(t => t.id === id);
-    
-    if (!task) {
-      throw new Error(`Task with id ${id} not found`);
+    try {
+      // Сначала пробуем прямой запрос к API для получения конкретной задачи
+      console.log(`Выполняется прямой запрос для получения задачи по ID: ${id}`);
+      const task = await this.request<ApiTask>(`/tasks/${id}`);
+      return task;
+    } catch (error) {
+      console.warn(`Ошибка при прямом запросе задачи по ID ${id}, пробуем получить из списка всех задач:`, error);
+      
+      // Если прямой запрос не сработал, получаем все задачи и находим нужную
+      const tasks = await this.getTasks();
+      console.log(`Ищем задачу с ID ${id} в списке из ${tasks.length} задач`);
+      
+      // Преобразуем все ID в строки для надежного сравнения
+      const task = tasks.find(t => String(t.id) === String(id));
+      
+      if (!task) {
+        console.error(`Задача с ID ${id} не найдена ни прямым запросом, ни в списке задач`);
+        throw new Error(`Task with id ${id} not found`);
+      }
+      
+      return task;
     }
-    
-    return task;
   }
 
   // Удаление задачи

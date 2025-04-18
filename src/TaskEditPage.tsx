@@ -16,6 +16,7 @@ export const TaskEditPage: React.FC = () => {
   const [dueTime, setDueTime] = useState('');
   const [notification, setNotification] = useState('');
   const [isCompleted, setIsCompleted] = useState(false);
+  const [originalTask, setOriginalTask] = useState<Task | null>(null); // Храним оригинальную задачу
   
   // Получаем данные задачи из состояния навигации
   useEffect(() => {
@@ -24,10 +25,14 @@ export const TaskEditPage: React.FC = () => {
       selectedDate?: string,
       selectedTime?: string,
       selectedNotification?: string,
-      taskTitle?: string 
+      taskTitle?: string,
+      forceRefresh?: number
     } || {};
+
+    console.log("TaskEditPage - Первый useEffect: проверка state", state);
     
     if (state.task) {
+      // Есть полные данные задачи в state, используем их
       setTitle(state.task.title);
       setDescription(state.task.description || '');
       
@@ -46,23 +51,42 @@ export const TaskEditPage: React.FC = () => {
       }
       
       setIsCompleted(state.task.completed);
-    } else {
-      // Если задача не передана через состояние, вернемся на главную
+      setOriginalTask(state.task);
+    } 
+    else if (state.forceRefresh) {
+      // Это возврат с DatePickerPage, загрузим задачу с сервера
+      console.log("Возврат с DatePickerPage с forceRefresh, загружаем задачу");
+      loadTask();
+    }
+    else if (taskId) {
+      // Есть ID задачи в URL, но нет данных в state - попробуем загрузить
+      console.log("Есть ID задачи в URL, но нет данных в state - загружаем задачу");
+      loadTask();
+    }
+    else {
+      // Нет ни task, ни forceRefresh, ни taskId - возвращаемся на главную
+      console.log("Нет ни task, ни forceRefresh, ни taskId - возвращаемся на главную");
       navigate('/');
     }
-  }, [location.state, navigate]);
+  }, [location.state, navigate, taskId]);
   
   const handleGoBack = () => {
     navigate('/');
   };
   
   const handleSave = async () => {
-    const state = location.state as { task?: Task } || {};
-    if (!state.task) return;
+    // Проверяем наличие ID задачи и загруженного originalTask
+    if (!originalTask || !taskId) {
+      console.error("Нет данных для сохранения");
+      alert("Не удалось сохранить изменения - отсутствуют исходные данные задачи");
+      return;
+    }
     
     try {
+      console.log("Исходная задача:", originalTask);
+      
       const editedTask: Task = {
-        ...state.task,
+        ...originalTask,
         title,
         description,
         dueDate: dueDate || undefined,
@@ -77,7 +101,7 @@ export const TaskEditPage: React.FC = () => {
       const apiTaskData = mapTaskToApiTask(editedTask);
       
       // Отправляем изменения на сервер
-      const updatedApiTask = await apiClient.updateTask(editedTask.id, apiTaskData);
+      const updatedApiTask = await apiClient.updateTask(taskId, apiTaskData);
       console.log('Ответ от сервера:', updatedApiTask);
       
       // Конвертируем обратно в формат для фронтенда
@@ -122,21 +146,14 @@ export const TaskEditPage: React.FC = () => {
       selectedTime?: string,
       selectedNotification?: string,
       taskTitle?: string, // Добавляем поле для названия задачи
-      forceUpdate?: number // Метка времени для принудительного обновления
+      forceRefresh?: number // Изменение имени параметра для соответствия с DatePickerPage
     } || {};
 
-    console.log("Страница редактирования: получено состояние", state);
+    console.log("TaskEditPage - Второй useEffect: проверка дополнительных параметров", state);
 
-    // Если вернулись с datepicker и есть данные о дате или метка принудительного обновления
-    if (state.selectedDate || state.selectedTime || state.selectedNotification || state.forceUpdate) {
-      // Если пришли от DatePicker, принудительно обновляем задачу с сервера
-      if (state.forceUpdate) {
-        console.log("Принудительное обновление задачи с сервера");
-        loadTask().then(() => {
-          console.log("Задача обновлена с сервера");
-        });
-      }
-      
+    // Обрабатываем только случаи с дополнительными параметрами 
+    // (forceRefresh уже обработан в первом useEffect, проверяем остальные)
+    if (state.selectedDate || state.selectedTime || state.selectedNotification || state.taskTitle) {
       if (state.selectedDate) {
         setDueDate(new Date(state.selectedDate));
       }
@@ -154,37 +171,49 @@ export const TaskEditPage: React.FC = () => {
         setTitle(state.taskTitle);
       }
     }
-    // Если есть данные о задаче, загружаем их
-    else if (state.task) {
-      const taskData = state.task;
-      setTitle(taskData.title);
-      setDescription(taskData.description || '');
-      setIsCompleted(taskData.completed);
-      
-      if (taskData.dueDate) {
-        setDueDate(taskData.dueDate);
-      }
-      
-      if (taskData.dueTime) {
-        setDueTime(taskData.dueTime);
-      }
-      
-      if (taskData.notification) {
-        setNotification(taskData.notification);
-      }
-    } else {
-      // Если нет данных, загружаем задачу по ID или возвращаемся на главную
-      loadTask();
-    }
-  }, [location.state, taskId]);
+  }, [location.state]);
   
   // Функция загрузки задачи по ID
   const loadTask = async () => {
     try {
+      console.log("Старт загрузки задачи с сервера, ID:", taskId);
+      
+      try {
+        console.log("Пробуем получить задачу напрямую через getTask API");
+        const taskData = await apiClient.getTask(String(taskId));
+        console.log("Задача успешно получена напрямую:", taskData);
+        
+        const task = mapApiTaskToTask(taskData);
+        setTitle(task.title);
+        setDescription(task.description || '');
+        setIsCompleted(task.completed);
+        setDueDate(task.dueDate || null);
+        setDueTime(task.dueTime || '');
+        setNotification(task.notification || '');
+        setOriginalTask(task);
+        console.log("Данные успешно загружены в форму");
+        return;
+      } catch (directError) {
+        console.warn("Не удалось получить задачу напрямую, пробуем через список:", directError);
+      }
+      
+      console.log("Загружаем список всех задач");
       const tasks = await apiClient.getTasks();
-      const foundTask = tasks.find(t => t.id === taskId);
+      console.log("Получены задачи с сервера:", tasks);
+      console.log("Ищем задачу с ID:", taskId, "типа:", typeof taskId);
+      
+      // Преобразуем taskId в строку для надежного сравнения
+      const idToFind = String(taskId);
+      
+      // Логируем ID всех задач для диагностики
+      console.log("ID всех задач:", tasks.map(t => {
+        return { id: t.id, type: typeof t.id };
+      }));
+      
+      const foundTask = tasks.find(t => String(t.id) === idToFind);
       
       if (foundTask) {
+        console.log("Задача найдена в списке:", foundTask);
         const task = mapApiTaskToTask(foundTask);
         setTitle(task.title);
         setDescription(task.description || '');
@@ -192,12 +221,19 @@ export const TaskEditPage: React.FC = () => {
         setDueDate(task.dueDate || null);
         setDueTime(task.dueTime || '');
         setNotification(task.notification || '');
+        setOriginalTask(task);
+        console.log("Данные задачи загружены в форму");
       } else {
-        // Задача не найдена, возвращаемся на главную
+        console.error("Задача с ID", idToFind, "не найдена в списке задач!");
+        
+        // Если задача не найдена, предупреждаем пользователя
+        alert("Не удалось загрузить информацию о задаче. Возврат на главную страницу.");
+        // Возвращаемся на главную
         navigate('/');
       }
     } catch (error) {
       console.error('Ошибка при загрузке задачи:', error);
+      alert("Произошла ошибка при загрузке задачи. Возврат на главную страницу.");
       navigate('/');
     }
   };
@@ -278,7 +314,7 @@ export const TaskEditPage: React.FC = () => {
             <button
               onClick={handleSave}
               className="w-full py-3 bg-blue-600 text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={!title.trim()}
+              disabled={!title.trim() || !originalTask}
             >
               Сохранить
             </button>

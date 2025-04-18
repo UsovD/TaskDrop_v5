@@ -107,16 +107,20 @@ export const DatePickerPage: React.FC = () => {
           const result = await apiClient.updateTask(String(taskId), updatedTask);
           console.log('Задача успешно обновлена на сервере:', result);
           
-          // Устанавливаем таймаут для анимации
+          // Устанавливаем таймаут для анимации и используем navigate вместо window.location
           setTimeout(() => {
-            // Получаем базовый URL приложения
-            const baseUrl = window.location.origin;
-            // Формируем полный URL для перенаправления
-            const fullUrl = `${baseUrl}/edit-task/${taskId}`;
-            console.log(`Перенаправляем на страницу редактирования задачи: ${fullUrl}`);
-            
-            // Перенаправляем с полным URL
-            window.location.href = fullUrl;
+            console.log(`Перенаправляем на страницу редактирования задачи: /edit-task/${taskId}`);
+            // Направляем пользователя обратно на страницу редактирования задачи
+            navigate(`/edit-task/${taskId}`, { 
+              replace: true, // Заменяем текущую страницу в истории
+              state: { 
+                forceRefresh: Date.now(), // Добавляем случайный параметр для принудительного обновления
+                // Передаем обновленные данные для формы
+                selectedDate: selectedDate ? dateStr : undefined,
+                selectedTime: selectedTime || undefined,
+                selectedNotification: selectedNotification || undefined
+              }
+            });
           }, 70);
         } catch (err) {
           console.error('Ошибка при обновлении задачи:', err);
@@ -124,11 +128,14 @@ export const DatePickerPage: React.FC = () => {
           
           // Даже при ошибке возвращаемся на страницу редактирования
           setTimeout(() => {
-            // Получаем базовый URL приложения
-            const baseUrl = window.location.origin;
-            // Полный URL для перенаправления
-            const fullUrl = `${baseUrl}/edit-task/${taskId}`;
-            window.location.href = fullUrl;
+            console.log(`При ошибке перенаправляем на: /edit-task/${taskId}`);
+            navigate(`/edit-task/${taskId}`, { 
+              replace: true,
+              state: { 
+                forceRefresh: Date.now(),
+                error: 'Не удалось обновить дату задачи, но вы можете попробовать снова'
+              } 
+            });
           }, 70);
         }
       } else {

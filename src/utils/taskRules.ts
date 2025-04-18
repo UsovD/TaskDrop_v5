@@ -97,12 +97,12 @@ export const taskValidationRules = {
 
 // Функция для автоматического определения категории задачи
 export const determineTaskCategory = (task: Omit<Task, 'category'>): TaskCategory => {
-  if (task.completed) return 'completed';
+  if (task.completed) return 'completed' as TaskCategory;
   if (!task.dueDate) return 'inbox';
   
   if (categoryRules.isToday(task as Task)) return 'today';
   if (categoryRules.isTomorrow(task as Task)) return 'tomorrow';
   if (categoryRules.isWithinWeek(task as Task)) return 'next7days';
   
-  return 'all';
+  return 'inbox';  // Заменяем 'all' на 'inbox' как безопасное значение
 }; 

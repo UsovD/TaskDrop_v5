@@ -1,7 +1,7 @@
 import type { LucideIcon } from 'lucide-react';
 import type { ComponentType } from 'react';
 
-export type TaskCategory = 'inbox' | 'today' | 'tomorrow' | 'next7days';
+export type TaskCategory = 'inbox' | 'today' | 'tomorrow' | 'next7days' | 'all' | 'completed';
 
 export type TaskPriority = 'low' | 'medium' | 'high';
 

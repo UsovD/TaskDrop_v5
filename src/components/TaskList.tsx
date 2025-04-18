@@ -20,7 +20,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   isAddingTask = false,
   isLoading = false,
 }) => {
-  const [currentCategory, setCurrentCategory] = useState<TaskCategory>('all');
+  const [currentCategory, setCurrentCategory] = useState<TaskCategory>('inbox');
   const [selectedCategory, setSelectedCategory] = useState<TaskCategory | null>(null);
   const [isAdding, setIsAdding] = useState(isAddingTask);
 
@@ -39,7 +39,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   const handleAddTask = (title: string, date?: Date, time?: string) => {
     if (title.trim()) {
       // Определяем категорию на основе даты
-      let category = currentCategory === 'all' ? 'inbox' : currentCategory;
+      let category: TaskCategory = currentCategory === 'all' ? 'inbox' : currentCategory;
       
       // Если указана дата
       if (date) {

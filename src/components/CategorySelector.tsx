@@ -74,7 +74,7 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
     return (
       <button
         key={category.id}
-        onClick={() => onSelectCategory(category.id)}
+        onClick={() => onSelectCategory(category.id as TaskCategory)}
         className={`flex flex-col items-start p-4 bg-zinc-800/50 backdrop-blur-sm rounded-2xl transition-colors w-full ${
           isActive ? 'ring-2 ring-blue-600' : 'hover:bg-zinc-700/50'
         }`}
@@ -98,7 +98,7 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
     return (
       <button
         key={category.id}
-        onClick={() => onSelectCategory(category.id)}
+        onClick={() => onSelectCategory(category.id as TaskCategory)}
         className={`w-full bg-zinc-800 rounded-2xl px-4 py-3 flex justify-between items-center transition-colors ${
           isActive ? 'ring-2 ring-blue-600' : 'hover:bg-zinc-700'
         }`}

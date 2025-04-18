@@ -76,9 +76,22 @@ const MainPage: React.FC = () => {
     }
   };
 
+  // Функция для форматирования даты в формат API
+  const formatDateForApi = (date: Date): string => {
+    return date.toISOString().split('T')[0]; // формат YYYY-MM-DD
+  };
+
   const handleAddTask = async (taskData: Omit<Task, 'id' | 'createdAt'>) => {
     try {
-      const apiTask = await apiClient.createTask(mapTaskToApiTask(taskData));
+      const apiTask = await apiClient.createTask({
+        title: taskData.title || '',  // Указываем, что поле не может быть undefined
+        description: taskData.description,
+        due_date: taskData.dueDate ? formatDateForApi(taskData.dueDate) : undefined,
+        due_time: taskData.dueTime,
+        notification: taskData.notification,
+        priority: taskData.priority || 'medium',
+        done: taskData.completed
+      });
       const newTask = mapApiTaskToTask(apiTask);
       setTasks([...tasks, newTask]);
       setError(null);
@@ -99,12 +112,8 @@ const MainPage: React.FC = () => {
       
       console.log('Отправляем задачу на обновление:', JSON.stringify(task, null, 2));
       
-      const taskId = parseInt(task.id, 10);
-      if (isNaN(taskId)) {
-        setError('Невозможно обновить задачу: неверный идентификатор');
-        console.error('Ошибка редактирования: неверный ID задачи', task.id);
-        return;
-      }
+      // Используем строковый ID
+      const taskId = task.id;
       
       const taskToApi = mapTaskToApiTask(task);
       console.log('Задача после преобразования в API формат:', JSON.stringify(taskToApi, null, 2));
@@ -135,7 +144,8 @@ const MainPage: React.FC = () => {
       const task = tasks.find(t => t.id === taskId);
       if (!task) return;
 
-      const updatedApiTask = await apiClient.toggleTaskComplete(parseInt(taskId, 10), !task.completed);
+      const taskIdStr = taskId; // Используем строковый id
+      const updatedApiTask = await apiClient.toggleTaskComplete(taskIdStr, !task.completed);
       const updatedTask = mapApiTaskToTask(updatedApiTask);
       
       setTasks(tasks.map(t => t.id === taskId ? updatedTask : t));
@@ -204,8 +214,6 @@ const MainPage: React.FC = () => {
 };
 
 const AppRoutes: React.FC = () => {
-  const location = useLocation();
-  
   return (
     <div className="routes-container" style={{ backgroundColor: "#000000", minHeight: "100vh" }}>
       <Routes>

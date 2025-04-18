@@ -3,7 +3,7 @@ import { Task, TaskCategory } from '../types/Task';
 import { filterTasksByCategory } from '../utils/taskRules';
 import { CATEGORIES } from '../constants/categories';
 import { TaskCard } from './TaskCard';
-import { ChevronLeft, Plus } from 'lucide-react';
+import { ChevronLeft, ArrowLeft } from 'lucide-react';
 import { AddTaskButton } from './AddTaskButton';
 
 interface CategoryPageProps {
@@ -52,7 +52,7 @@ export const CategoryPage: React.FC<CategoryPageProps> = ({
   
   const bgColor = getIconBackground(category);
 
-  const handleAddTask = (title: string, date?: Date, time?: string) => {
+  const handleAddTask = (title: string, date?: Date) => {
     if (title.trim()) {
       onAddTask({
         title: title.trim(),

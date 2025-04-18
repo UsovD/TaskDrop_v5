@@ -6,13 +6,11 @@ import { useNavigate } from 'react-router-dom';
 interface TaskCardProps {
   task: Task;
   onToggleComplete: (id: string) => void;
-  onEdit: (task: Task) => void;
 }
 
 export const TaskCard: React.FC<TaskCardProps> = ({
   task,
   onToggleComplete,
-  onEdit,
 }) => {
   const navigate = useNavigate();
   const categoryInfo = getCategoryInfo(task.category);

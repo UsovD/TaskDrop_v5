@@ -16,7 +16,6 @@ export const TaskEditPage: React.FC = () => {
   const [dueTime, setDueTime] = useState('');
   const [notification, setNotification] = useState('');
   const [isCompleted, setIsCompleted] = useState(false);
-  const [category, setCategory] = useState('');
   
   // Получаем данные задачи из состояния навигации
   useEffect(() => {
@@ -47,7 +46,6 @@ export const TaskEditPage: React.FC = () => {
       }
       
       setIsCompleted(state.task.completed);
-      setCategory(state.task.category);
     } else {
       // Если задача не передана через состояние, вернемся на главную
       navigate('/');
@@ -135,7 +133,6 @@ export const TaskEditPage: React.FC = () => {
       setTitle(taskData.title);
       setDescription(taskData.description || '');
       setIsCompleted(taskData.completed);
-      setCategory(determineCategoryFromTask(taskData) || 'inbox');
       
       if (taskData.dueDate) {
         setDueDate(taskData.dueDate);
@@ -192,7 +189,6 @@ export const TaskEditPage: React.FC = () => {
         setTitle(task.title);
         setDescription(task.description || '');
         setIsCompleted(task.completed);
-        setCategory(determineCategoryFromTask(task));
         setDueDate(task.dueDate || null);
         setDueTime(task.dueTime || '');
         setNotification(task.notification || '');

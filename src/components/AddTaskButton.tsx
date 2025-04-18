@@ -18,12 +18,6 @@ interface AddTaskButtonProps {
   isEditing?: boolean;
 }
 
-const DAYS_OF_WEEK = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
-const MONTHS = [
-  'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
-  'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
-];
-
 export const AddTaskButton: React.FC<AddTaskButtonProps> = ({ 
   onClick, 
   onClose, 
@@ -46,7 +40,6 @@ export const AddTaskButton: React.FC<AddTaskButtonProps> = ({
   const returnedDate = locationState.selectedDate ? new Date(locationState.selectedDate) : null;
   
   const [selectedDate, setSelectedDate] = useState<Date | null>(initialTask?.date || new Date());
-  const [currentMonth, setCurrentMonth] = useState(new Date());
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [showNotificationPicker, setShowNotificationPicker] = useState(false);
   const [selectedTime, setSelectedTime] = useState<string>(initialTask?.time || '');
@@ -172,12 +165,6 @@ export const AddTaskButton: React.FC<AddTaskButtonProps> = ({
     });
   };
 
-  const handleCancel = () => {
-    // Сбрасываем состояния пикеров, но не закрываем форму добавления задачи
-    setShowTimePicker(false);
-    setShowNotificationPicker(false);
-  };
-
   const handleOpenDatePicker = () => {
     // Очищаем ошибку перед открытием выбора даты, чтобы пользователь мог сначала выбрать дату
     setTitleError('');
@@ -193,14 +180,6 @@ export const AddTaskButton: React.FC<AddTaskButtonProps> = ({
         taskTitle: taskTitle // Передаем название задачи
       }
     });
-  };
-
-  const formatTime = (time: string) => {
-    return time || '--:--';
-  };
-
-  const formatNotification = (notification: string) => {
-    return notification || 'Укажите время';
   };
 
   const renderTimePicker = () => {

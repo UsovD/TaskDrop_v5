@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import { Task } from './types/Task';
+import { Task, TaskCategory } from './types/Task';
 import { ChevronLeft } from 'lucide-react';
+import { apiClient } from './api/client';
+import { mapApiTaskToTask } from './utils/taskMappers';
 
 export const TaskEditPage: React.FC = () => {
   const navigate = useNavigate();
@@ -11,6 +13,8 @@ export const TaskEditPage: React.FC = () => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [dueDate, setDueDate] = useState<Date | null>(null);
+  const [dueTime, setDueTime] = useState('');
+  const [notification, setNotification] = useState('');
   const [isCompleted, setIsCompleted] = useState(false);
   const [category, setCategory] = useState('');
   
@@ -20,18 +24,26 @@ export const TaskEditPage: React.FC = () => {
       task?: Task,
       selectedDate?: string,
       selectedTime?: string,
-      selectedNotification?: string 
+      selectedNotification?: string,
+      taskTitle?: string 
     } || {};
     
     if (state.task) {
       setTitle(state.task.title);
       setDescription(state.task.description || '');
       
-      // Если есть выбранная дата из DatePickerPage, используем её
       if (state.selectedDate) {
         setDueDate(new Date(state.selectedDate));
       } else {
         setDueDate(state.task.dueDate || null);
+      }
+      
+      if (state.selectedTime) {
+        setDueTime(state.selectedTime);
+      }
+      
+      if (state.selectedNotification) {
+        setNotification(state.selectedNotification);
       }
       
       setIsCompleted(state.task.completed);
@@ -55,6 +67,8 @@ export const TaskEditPage: React.FC = () => {
       title,
       description,
       dueDate: dueDate || undefined,
+      dueTime,
+      notification,
       completed: isCompleted
     };
     
@@ -70,6 +84,126 @@ export const TaskEditPage: React.FC = () => {
       month: 'long',
       year: 'numeric'
     });
+  };
+  
+  // Обработчик открытия DatePickerPage для выбора даты
+  const handleOpenDatePicker = () => {
+    navigate('/datepicker', {
+      state: {
+        initialDate: dueDate?.toISOString(),
+        initialTime: dueTime,
+        initialNotification: notification,
+        returnToEdit: true,
+        taskId: taskId,
+        taskTitle: title // Передаем название задачи
+      }
+    });
+  };
+  
+  // Загружаем данные из состояния маршрутизации при возврате с DatePickerPage
+  useEffect(() => {
+    const state = location.state as {
+      task?: Task,
+      selectedDate?: string,
+      selectedTime?: string,
+      selectedNotification?: string,
+      taskTitle?: string // Добавляем поле для названия задачи
+    } || {};
+
+    // Если вернулись с datepicker и есть данные о задаче
+    if (state.selectedDate || state.selectedTime || state.selectedNotification) {
+      if (state.selectedDate) {
+        setDueDate(new Date(state.selectedDate));
+      }
+      
+      if (state.selectedTime) {
+        setDueTime(state.selectedTime);
+      }
+      
+      if (state.selectedNotification) {
+        setNotification(state.selectedNotification);
+      }
+      
+      // Восстанавливаем название задачи, если оно было передано
+      if (state.taskTitle) {
+        setTitle(state.taskTitle);
+      }
+    }
+    // Если есть данные о задаче, загружаем их
+    else if (state.task) {
+      const taskData = state.task;
+      setTitle(taskData.title);
+      setDescription(taskData.description || '');
+      setIsCompleted(taskData.completed);
+      setCategory(determineCategoryFromTask(taskData) || 'inbox');
+      
+      if (taskData.dueDate) {
+        setDueDate(taskData.dueDate);
+      }
+      
+      if (taskData.dueTime) {
+        setDueTime(taskData.dueTime);
+      }
+      
+      if (taskData.notification) {
+        setNotification(taskData.notification);
+      }
+    } else {
+      // Если нет данных, загружаем задачу по ID или возвращаемся на главную
+      loadTask();
+    }
+  }, [location.state, taskId]);
+  
+  // Функция для определения категории задачи
+  const determineCategoryFromTask = (task: Task): TaskCategory => {
+    if (task.dueDate) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      
+      const weekLater = new Date(today);
+      weekLater.setDate(weekLater.getDate() + 7);
+      
+      const dueDate = new Date(task.dueDate);
+      dueDate.setHours(0, 0, 0, 0);
+      
+      if (dueDate.getTime() === today.getTime()) {
+        return 'today';
+      } else if (dueDate.getTime() === tomorrow.getTime()) {
+        return 'tomorrow';
+      } else if (dueDate > today && dueDate <= weekLater) {
+        return 'next7days';
+      }
+    }
+    
+    return 'inbox';
+  };
+
+  // Функция загрузки задачи по ID
+  const loadTask = async () => {
+    try {
+      const tasks = await apiClient.getTasks();
+      const foundTask = tasks.find(t => t.id === taskId);
+      
+      if (foundTask) {
+        const task = mapApiTaskToTask(foundTask);
+        setTitle(task.title);
+        setDescription(task.description || '');
+        setIsCompleted(task.completed);
+        setCategory(determineCategoryFromTask(task));
+        setDueDate(task.dueDate || null);
+        setDueTime(task.dueTime || '');
+        setNotification(task.notification || '');
+      } else {
+        // Задача не найдена, возвращаемся на главную
+        navigate('/');
+      }
+    } catch (error) {
+      console.error('Ошибка при загрузке задачи:', error);
+      navigate('/');
+    }
   };
   
   return (
@@ -115,13 +249,7 @@ export const TaskEditPage: React.FC = () => {
           <div className="space-y-2">
             <label className="block text-sm text-zinc-400">Срок выполнения</label>
             <div 
-              onClick={() => navigate('/datepicker', { 
-                state: { 
-                  initialDate: dueDate?.toISOString(),
-                  returnToEdit: true,
-                  taskId: taskId
-                }
-              })} 
+              onClick={handleOpenDatePicker} 
               className="w-full bg-zinc-800 rounded-xl px-4 py-3 text-white cursor-pointer flex justify-between items-center"
             >
               <span>{dueDate ? formatDateForDisplay(dueDate) : 'Выбрать дату'}</span>

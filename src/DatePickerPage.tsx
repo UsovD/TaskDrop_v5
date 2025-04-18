@@ -27,13 +27,15 @@ export const DatePickerPage: React.FC = () => {
     initialNotification?: string, 
     fromAddTask?: boolean,
     returnToEdit?: boolean,
-    taskId?: string
+    taskId?: string,
+    taskTitle?: string
   } || {};
   
   const initialDate = state.initialDate ? new Date(state.initialDate) : new Date();
   const fromAddTask = state.fromAddTask || false;
   const returnToEdit = state.returnToEdit || false;
   const taskId = state.taskId;
+  const taskTitle = state.taskTitle || '';
   
   const [selectedDate, setSelectedDate] = useState<Date | null>(initialDate);
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -83,7 +85,8 @@ export const DatePickerPage: React.FC = () => {
           state: { 
             selectedDate: selectedDate?.toISOString(),
             selectedTime,
-            selectedNotification
+            selectedNotification,
+            taskTitle
           } 
         });
       } else {
@@ -93,7 +96,8 @@ export const DatePickerPage: React.FC = () => {
             selectedDate: selectedDate?.toISOString(),
             selectedTime,
             selectedNotification,
-            expandAddTask: true
+            expandAddTask: true,
+            taskTitle
           } 
         });
       }

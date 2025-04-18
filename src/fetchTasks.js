@@ -18,7 +18,7 @@ async function fetchTasks() {
     // Выводим задачи в виде таблицы
     console.table(tasks.map(task => ({
       id: task.id,
-      text: task.text,
+      title: task.title,
       done: task.done,
       created_at: task.created_at
     })));

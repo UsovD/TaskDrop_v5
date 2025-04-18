@@ -40,7 +40,8 @@ export const AddTaskButton: React.FC<AddTaskButtonProps> = ({
   const locationState = location.state as { 
     selectedDate?: string, 
     selectedTime?: string, 
-    selectedNotification?: string 
+    selectedNotification?: string,
+    taskTitle?: string
   } || {};
   const returnedDate = locationState.selectedDate ? new Date(locationState.selectedDate) : null;
   
@@ -70,6 +71,11 @@ export const AddTaskButton: React.FC<AddTaskButtonProps> = ({
       
       if (locationState.selectedNotification) {
         setNotification(locationState.selectedNotification);
+      }
+      
+      // Восстанавливаем название задачи, если оно было передано
+      if (locationState.taskTitle) {
+        setTaskTitle(locationState.taskTitle);
       }
       
       // Очищаем состояние, чтобы избежать повторного применения даты при обновлении страницы
@@ -177,12 +183,14 @@ export const AddTaskButton: React.FC<AddTaskButtonProps> = ({
     setTitleError('');
     
     // Вместо открытия модального окна переходим на страницу выбора даты
+    // и передаем текущее название задачи
     navigate('/datepicker', { 
       state: { 
         initialDate: selectedDate?.toISOString(),
         initialTime: selectedTime,
         initialNotification: notification,
-        fromAddTask: true
+        fromAddTask: true,
+        taskTitle: taskTitle // Передаем название задачи
       }
     });
   };

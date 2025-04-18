@@ -4,6 +4,7 @@ import { Task } from './types/Task';
 import { TaskList } from './components/TaskList';
 import { DatePickerPage } from './DatePickerPage';
 import { TaskEditPage } from './TaskEditPage';
+import { UserInfo } from './components/UserInfo';
 import { apiClient } from './api/client';
 import { mapApiTaskToTask, mapTaskToApiTask } from './utils/taskMappers';
 import './css/components.css';
@@ -162,6 +163,8 @@ const MainPage: React.FC = () => {
           <button onClick={() => setError(null)}>✕</button>
         </div>
       )}
+      
+      <UserInfo />
       
       <TaskList
         tasks={tasks}

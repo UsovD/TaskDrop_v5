@@ -275,19 +275,34 @@ bot.on('callback_query', async (callbackQuery) => {
     });
   } else if (data === 'create_task_from_forward') {
     // Получаем текст из пересланного сообщения
-    const originalText = callbackQuery.message.text.replace('Переслано от:', '').trim();
-    const firstLine = originalText.split('\n')[0]; // Берем первую строку для заголовка задачи
+    const messageText = callbackQuery.message.text;
+    console.log('Исходный текст сообщения:', messageText);
+    
+    // Извлекаем текст сообщения, пропуская первую строку с "Переслано от:"
+    const textParts = messageText.split('\n');
+    const firstLine = textParts.length > 1 ? textParts[1] : messageText;
+    const remainingText = textParts.slice(1).join('\n');
+    
+    console.log('Заголовок задачи:', firstLine);
+    console.log('Описание задачи:', remainingText);
     
     try {
-      // Отправляем запрос к API для создания новой задачи из пересланного сообщения
-      const response = await axios.post(`${apiUrl}/tasks`, {
+      // Подготавливаем данные для отправки в API
+      const taskData = {
         title: firstLine.length > 50 ? firstLine.substring(0, 47) + '...' : firstLine,
-        description: originalText,
+        description: remainingText,
         user_id: 1,
         done: false
-      });
+      };
       
-      if (response.data && response.data.success) {
+      console.log('Отправляем данные в API:', JSON.stringify(taskData));
+      
+      // Отправляем запрос к API для создания новой задачи
+      const response = await axios.post(`${apiUrl}/tasks`, taskData);
+      
+      console.log('Ответ API:', JSON.stringify(response.data));
+      
+      if (response.data && response.data.id) {
         bot.sendMessage(chatId, '✅ Задача успешно создана из пересланного сообщения!', {
           reply_markup: {
             inline_keyboard: [
@@ -297,11 +312,14 @@ bot.on('callback_query', async (callbackQuery) => {
           }
         });
       } else {
-        throw new Error('Ответ API не содержит подтверждения успешного создания задачи');
+        console.error('Неожиданный ответ API:', response.data);
+        throw new Error('Ответ API не содержит ID созданной задачи');
       }
     } catch (error) {
       console.error('Ошибка при создании задачи из пересланного сообщения:', error);
-      bot.sendMessage(chatId, 'Произошла ошибка при создании задачи. Пожалуйста, попробуйте позже.');
+      console.error('Полная информация об ошибке:', error.response ? error.response.data : 'Нет данных о response');
+      
+      bot.sendMessage(chatId, `Произошла ошибка при создании задачи: ${error.message}. Пожалуйста, попробуйте позже.`);
     }
   } else if (data === 'cancel_forward') {
     bot.sendMessage(chatId, 'Действие отменено.');

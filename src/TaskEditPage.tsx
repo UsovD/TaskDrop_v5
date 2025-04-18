@@ -3,7 +3,7 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { Task } from './types/Task';
 import { ChevronLeft } from 'lucide-react';
 import { apiClient } from './api/client';
-import { mapApiTaskToTask } from './utils/taskMappers';
+import { mapApiTaskToTask, mapTaskToApiTask } from './utils/taskMappers';
 
 export const TaskEditPage: React.FC = () => {
   const navigate = useNavigate();
@@ -56,22 +56,39 @@ export const TaskEditPage: React.FC = () => {
     navigate('/');
   };
   
-  const handleSave = () => {
+  const handleSave = async () => {
     const state = location.state as { task?: Task } || {};
     if (!state.task) return;
     
-    const editedTask: Task = {
-      ...state.task,
-      title,
-      description,
-      dueDate: dueDate || undefined,
-      dueTime,
-      notification,
-      completed: isCompleted
-    };
-    
-    // Возвращаемся на главную и передаем отредактированную задачу
-    navigate('/', { state: { editedTask } });
+    try {
+      const editedTask: Task = {
+        ...state.task,
+        title,
+        description,
+        dueDate: dueDate || undefined,
+        dueTime,
+        notification,
+        completed: isCompleted
+      };
+      
+      console.log('Сохраняем задачу:', editedTask);
+      
+      // Конвертируем задачу для отправки на сервер
+      const apiTaskData = mapTaskToApiTask(editedTask);
+      
+      // Отправляем изменения на сервер
+      const updatedApiTask = await apiClient.updateTask(editedTask.id, apiTaskData);
+      console.log('Ответ от сервера:', updatedApiTask);
+      
+      // Конвертируем обратно в формат для фронтенда
+      const updatedTask = mapApiTaskToTask(updatedApiTask);
+      
+      // Возвращаемся на главную и передаем обновленную задачу
+      navigate('/', { state: { editedTask: updatedTask } });
+    } catch (error) {
+      console.error('Ошибка при сохранении задачи:', error);
+      alert('Произошла ошибка при сохранении задачи');
+    }
   };
   
   const formatDateForDisplay = (date: Date | null) => {

@@ -28,7 +28,6 @@ export const DatePickerPage: React.FC = () => {
     initialTime?: string, 
     initialNotification?: string, 
     fromAddTask?: boolean,
-    returnToEdit?: boolean,
     taskId?: string,
     taskTitle?: string
   } || {};

@@ -10,7 +10,7 @@
       "src": "package.json",
       "use": "@vercel/static-build",
       "config": {
-        "buildCommand": "npm ci && npm run build",
+        "buildCommand": "bash ./vercel-build.sh",
         "outputDirectory": "dist",
         "installCommand": "npm install"
       }

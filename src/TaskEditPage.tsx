@@ -151,33 +151,6 @@ export const TaskEditPage: React.FC = () => {
     }
   }, [location.state, taskId]);
   
-  // Функция для определения категории задачи
-  const determineCategoryFromTask = (task: Task): TaskCategory => {
-    if (task.dueDate) {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      
-      const tomorrow = new Date(today);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      
-      const weekLater = new Date(today);
-      weekLater.setDate(weekLater.getDate() + 7);
-      
-      const dueDate = new Date(task.dueDate);
-      dueDate.setHours(0, 0, 0, 0);
-      
-      if (dueDate.getTime() === today.getTime()) {
-        return 'today';
-      } else if (dueDate.getTime() === tomorrow.getTime()) {
-        return 'tomorrow';
-      } else if (dueDate > today && dueDate <= weekLater) {
-        return 'next7days';
-      }
-    }
-    
-    return 'inbox';
-  };
-
   // Функция загрузки задачи по ID
   const loadTask = async () => {
     try {

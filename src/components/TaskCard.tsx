@@ -39,7 +39,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
           <input
             type="checkbox"
             checked={task.completed}
-            onChange={(e) => onToggleComplete(task.id)}
+            onChange={() => onToggleComplete(task.id)}
             className="sr-only peer"
           />
           <div className="w-5 h-5 border-2 border-zinc-600 rounded peer-checked:bg-blue-600 peer-checked:border-blue-600 transition-colors"></div>

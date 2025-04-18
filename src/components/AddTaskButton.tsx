@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Calendar, Flag, Paperclip, Clock, Star, ChevronLeft, ChevronRight, X, Bell, AlertCircle } from 'lucide-react';
+import { Plus, Calendar, Flag, Paperclip, Clock, ChevronLeft, Bell, AlertCircle } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 interface AddTaskButtonProps {

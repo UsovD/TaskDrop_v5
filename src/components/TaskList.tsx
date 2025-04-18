@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Task, TaskCategory } from '../types/Task';
 import { CategorySelector } from './CategorySelector';
 import { CategoryPage } from './CategoryPage';
@@ -36,7 +36,7 @@ export const TaskList: React.FC<TaskListProps> = ({
     }
   }, [isAddingTask]);
 
-  const handleAddTask = (title: string, date?: Date, time?: string) => {
+  const handleAddTask = (title: string, date?: Date) => {
     if (title.trim()) {
       // Определяем категорию на основе даты
       let category: TaskCategory = currentCategory === 'all' ? 'inbox' : currentCategory;

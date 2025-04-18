@@ -3,7 +3,7 @@ import { Task, TaskCategory } from '../types/Task';
 import { filterTasksByCategory } from '../utils/taskRules';
 import { CATEGORIES } from '../constants/categories';
 import { TaskCard } from './TaskCard';
-import { ChevronLeft, ArrowLeft } from 'lucide-react';
+import { ChevronLeft } from 'lucide-react';
 import { AddTaskButton } from './AddTaskButton';
 
 interface CategoryPageProps {
@@ -109,7 +109,6 @@ export const CategoryPage: React.FC<CategoryPageProps> = ({
                 key={task.id}
                 task={task}
                 onToggleComplete={onToggleTask}
-                onEdit={handleEditTask}
               />
             ))}
           </div>

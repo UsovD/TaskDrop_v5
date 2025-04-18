@@ -8,28 +8,14 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
     <meta name="format-detection" content="telephone=no"/>
     <meta name="mobile-web-app-capable" content="yes"/>
-    <meta name="telegram-web-app-ready" content="true"/>
     <title>TaskDrop</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script>
-      // Определяем, открыт ли сайт через Telegram WebApp
-      const isTelegramWebApp = window.Telegram && window.Telegram.WebApp;
-      
       // Функция для установки реальной высоты области просмотра
       function setViewportHeight() {
         // Получаем высоту видимой области
         let vh = window.innerHeight * 0.01;
         document.documentElement.style.setProperty('--vh', `${vh}px`);
-        
-        // Если открыто через Telegram WebApp, используем его API
-        if (isTelegramWebApp) {
-          const telegramViewportHeight = window.Telegram.WebApp.viewportHeight;
-          if (telegramViewportHeight) {
-            document.documentElement.style.setProperty('--tg-vh', `${telegramViewportHeight * 0.01}px`);
-          }
-        }
-        
-        // Для отладки
-        document.documentElement.style.setProperty('--window-inner-height', `${window.innerHeight}px`);
       }
 
       // Устанавливаем высоту при загрузке
@@ -41,114 +27,50 @@
         setTimeout(setViewportHeight, 200); // Задержка для iOS
       });
       
-      // Прослушиваем события прокрутки для обновления высоты
-      window.addEventListener('scroll', () => {
-        if (window.scrollDebounce) clearTimeout(window.scrollDebounce);
-        window.scrollDebounce = setTimeout(setViewportHeight, 100);
-      });
-      
       // Запускаем сразу для предотвращения мигания при загрузке
       setViewportHeight();
-      
-      // Расширяем в полноэкранный режим в Telegram если возможно
-      document.addEventListener('DOMContentLoaded', () => {
-        if (isTelegramWebApp) {
-          // Расширяем в полный экран если поддерживается
-          if (window.Telegram.WebApp.expand) {
-            window.Telegram.WebApp.expand();
-          }
-          
-          // Скрываем кнопку Назад, если она есть
-          if (window.Telegram.WebApp.BackButton) {
-            window.Telegram.WebApp.BackButton.hide();
-          }
-          
-          // Устанавливаем цвет фона
-          if (window.Telegram.WebApp.setBackgroundColor) {
-            window.Telegram.WebApp.setBackgroundColor('#000000');
-          }
-        }
-      });
     </script>
     <style>
       :root {
         --vh: 1vh;
-        --tg-vh: 1vh;
       }
       
       * {
         -webkit-tap-highlight-color: transparent;
         box-sizing: border-box;
+        margin: 0;
+        padding: 0;
       }
       
       html, body {
-        margin: 0;
-        padding: 0;
         background-color: #000000;
         color: #ffffff;
         width: 100%;
         height: 100%;
-        /* Используем различные способы установки высоты */
-        height: 100vh; /* Стандартная высота */
-        height: 100dvh; /* Новый стандарт для динамических интерфейсов */
-        height: calc(var(--vh, 1vh) * 100); /* Реальная высота через JS */
-        /* Фиксированная высота без прокрутки основного документа */
+        height: 100vh;
+        height: calc(var(--vh, 1vh) * 100);
         overflow: hidden;
+      }
+      
+      #root {
+        background-color: #000000;
+        height: 100%;
+        height: 100vh;
+        height: calc(var(--vh, 1vh) * 100);
+        width: 100%;
+        overflow-y: auto;
+        overflow-x: hidden;
+        -webkit-overflow-scrolling: touch;
+        touch-action: manipulation;
+      }
+      
+      /* Специальные стили для Telegram */
+      body.telegram {
         position: fixed;
         top: 0;
         left: 0;
         right: 0;
         bottom: 0;
-      }
-      
-      /* Стили для Telegram WebApp */
-      .telegram-web-app html, .telegram-web-app body {
-        height: calc(var(--tg-vh, 1vh) * 100);
-      }
-      
-      #root {
-        background-color: #000000;
-        /* Используем различные способы установки высоты */
-        height: 100vh; /* Запасной вариант */
-        height: 100dvh; /* Новый стандарт */
-        height: calc(var(--vh, 1vh) * 100); /* Реальная высота */
-        width: 100%;
-        /* Разрешаем прокрутку внутри корневого контейнера */
-        overflow-y: auto;
-        overflow-x: hidden;
-        /* Улучшения для iOS */
-        -webkit-overflow-scrolling: touch;
-        /* Отключаем двойное нажатие для зума */
-        touch-action: manipulation;
-        /* Позиционирование */
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        /* Предотвращаем перетаскивание на iOS */
-        -webkit-user-drag: none;
-        user-select: none;
-      }
-      
-      /* Стили для Telegram WebApp */
-      .telegram-web-app #root {
-        height: calc(var(--tg-vh, 1vh) * 100);
-      }
-
-      /* Стили для iOS Safari, предотвращающие проблемы с прокруткой */
-      @supports (-webkit-touch-callout: none) {
-        #root {
-          /* Предотвращаем проблемы с резиновым эффектом прокрутки */
-          position: fixed;
-        }
-      }
-      
-      /* Стили для полноэкранного отображения */
-      @media screen and (display-mode: fullscreen) {
-        html, body, #root {
-          height: 100%;
-        }
       }
     </style>
   </head>
@@ -156,10 +78,57 @@
     <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root"></div>
     <script>
-      // Добавляем класс для Telegram WebApp
-      if (window.Telegram && window.Telegram.WebApp) {
-        document.documentElement.classList.add('telegram-web-app');
-      }
+      document.addEventListener('DOMContentLoaded', function() {
+        // Проверяем, запущено ли приложение в Telegram WebApp
+        if (window.Telegram && window.Telegram.WebApp) {
+          // Добавляем класс к body
+          document.body.classList.add('telegram');
+          
+          // Используем Telegram WebApp API для расширения приложения
+          window.Telegram.WebApp.ready();
+          window.Telegram.WebApp.expand();
+          
+          // Устанавливаем цвет фона
+          if (window.Telegram.WebApp.setBackgroundColor) {
+            window.Telegram.WebApp.setBackgroundColor('#000000');
+          }
+          
+          // Отключаем подсказку при возврате
+          if (window.Telegram.WebApp.disableClosingConfirmation) {
+            window.Telegram.WebApp.disableClosingConfirmation();
+          }
+          
+          // Получаем реальную высоту экрана от Telegram WebApp
+          const tgHeight = window.Telegram.WebApp.viewportHeight;
+          if (tgHeight) {
+            document.documentElement.style.setProperty('--vh', `${tgHeight / 100}px`);
+          }
+          
+          // Устанавливаем обработчик на изменение темы
+          window.Telegram.WebApp.onEvent('themeChanged', function() {
+            // Обновляем высоту при изменении темы (это может изменить размеры интерфейса)
+            const tgHeight = window.Telegram.WebApp.viewportHeight;
+            if (tgHeight) {
+              document.documentElement.style.setProperty('--vh', `${tgHeight / 100}px`);
+            }
+          });
+          
+          // Устанавливаем обработчик на изменение viewPort
+          window.Telegram.WebApp.onEvent('viewportChanged', function(event) {
+            // Обновляем высоту при изменении viewport
+            const tgHeight = window.Telegram.WebApp.viewportHeight;
+            if (tgHeight) {
+              document.documentElement.style.setProperty('--vh', `${tgHeight / 100}px`);
+            }
+          });
+          
+          console.log('Telegram WebApp initialized:', {
+            viewportHeight: window.Telegram.WebApp.viewportHeight,
+            viewportStableHeight: window.Telegram.WebApp.viewportStableHeight,
+            isExpanded: window.Telegram.WebApp.isExpanded
+          });
+        }
+      });
     </script>
     <script src="/src/index.tsx" type="module"></script>
   </body>

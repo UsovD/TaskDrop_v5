@@ -56,7 +56,6 @@ bot.onText(/\/start/, (msg) => {
 /add - добавить новую задачу
 /help - показать информацию о командах
 /webapp - открыть веб-приложение`, {
-    parse_mode: 'Markdown',
     reply_markup: {
       inline_keyboard: [
         [{ text: '🚀 Открыть приложение', web_app: { url: webAppUrl } }]
@@ -69,13 +68,12 @@ bot.onText(/\/start/, (msg) => {
 bot.onText(/\/help/, (msg) => {
   const chatId = msg.chat.id;
   
-  bot.sendMessage(chatId, `*Список доступных команд:*
+  bot.sendMessage(chatId, `Список доступных команд:
   
 /tasks - показать список активных задач
 /add - добавить новую задачу
 /help - показать эту справку
 /webapp - открыть веб-приложение`, {
-    parse_mode: 'Markdown',
     reply_markup: {
       inline_keyboard: [
         [{ text: '🚀 Открыть приложение', web_app: { url: webAppUrl } }]
@@ -122,17 +120,17 @@ bot.onText(/\/tasks/, async (msg) => {
     }
     
     // Формируем сообщение со списком задач
-    let message = '*Ваши активные задачи:*\n\n';
+    let message = 'Ваши активные задачи:\n\n';
     
     tasks.filter(task => !task.done).forEach((task, index) => {
       const dueDate = task.due_date ? `📅 ${task.due_date}` : '';
       const dueTime = task.due_time ? `⏰ ${task.due_time}` : '';
       const notification = task.notification ? `🔔 ${task.notification}` : '';
       
-      message += `*${index + 1}.* ${task.title}\n`;
+      message += `${index + 1}. ${task.title}\n`;
       
       if (task.description) {
-        message += `   _${task.description}_\n`;
+        message += `   ${task.description}\n`;
       }
       
       if (dueDate || dueTime || notification) {
@@ -143,7 +141,6 @@ bot.onText(/\/tasks/, async (msg) => {
     });
     
     bot.sendMessage(chatId, message, {
-      parse_mode: 'Markdown',
       reply_markup: {
         inline_keyboard: [
           [{ text: '➕ Добавить задачу', callback_data: 'prompt_add_task' }],
@@ -182,8 +179,7 @@ bot.onText(/\/add (.+)/, async (msg, match) => {
     });
     
     if (response.data && response.data.success) {
-      bot.sendMessage(chatId, `✅ Задача *"${taskTitle}"* успешно добавлена!`, {
-        parse_mode: 'Markdown',
+      bot.sendMessage(chatId, `✅ Задача "${taskTitle}" успешно добавлена!`, {
         reply_markup: {
           inline_keyboard: [
             [{ text: '📋 Посмотреть все задачи', callback_data: 'show_tasks' }],
@@ -338,11 +334,10 @@ bot.on('callback_query', async (callbackQuery) => {
         done: true
       });
       
-      // Обновляем сообщение с уведомлением
-      bot.editMessageText(`✅ *Задача выполнена!*\n\n${callbackQuery.message.text.split('\n\n').slice(1).join('\n\n')}`, {
+      // Обновляем сообщение с уведомлением (убираем Markdown)
+      bot.editMessageText(`✅ Задача выполнена!\n\n${callbackQuery.message.text.split('\n\n').slice(1).join('\n\n')}`, {
         chat_id: chatId,
         message_id: callbackQuery.message.message_id,
-        parse_mode: 'Markdown',
         reply_markup: {
           inline_keyboard: [
             [{ text: '🚀 Открыть в приложении', web_app: { url: webAppUrl } }]
@@ -392,6 +387,59 @@ bot.on('polling_error', (error) => {
       });
   }
 });
+
+// Обработчик команды /test для тестирования уведомлений
+bot.onText(/\/test/, (msg) => {
+  const chatId = msg.chat.id;
+  
+  // Сохраняем chat_id пользователя, если еще не сохранен
+  userChatIds.set(1, chatId);
+  
+  // Текущее время для отладки
+  const now = new Date();
+  const currentTime = now.toLocaleTimeString('ru-RU');
+  const currentDate = now.toLocaleDateString('ru-RU');
+  
+  // Отправляем тестовое уведомление (удалим Markdown для надежности)
+  let message = `🔔 Тестовое уведомление\n\n`;
+  message += `Текущее время: ${currentTime}\n`;
+  message += `Текущая дата: ${currentDate}\n\n`;
+  message += `Ваш chat_id: ${chatId} сохранен для получения уведомлений.\n`;
+  message += `Количество сохраненных пользователей: ${userChatIds.size}`;
+  
+  bot.sendMessage(chatId, message, {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '📋 Посмотреть задачи', callback_data: 'show_tasks' }],
+        [{ text: '🚀 Открыть приложение', web_app: { url: webAppUrl } }]
+      ]
+    }
+  });
+});
+
+// Функция для безопасного экранирования Markdown
+function escapeMarkdown(text) {
+  if (!text) return '';
+  return text
+    .replace(/\*/g, '\\*')
+    .replace(/_/g, '\\_')
+    .replace(/\[/g, '\\[')
+    .replace(/\]/g, '\\]')
+    .replace(/\(/g, '\\(')
+    .replace(/\)/g, '\\)')
+    .replace(/~/g, '\\~')
+    .replace(/`/g, '\\`')
+    .replace(/>/g, '\\>')
+    .replace(/#/g, '\\#')
+    .replace(/\+/g, '\\+')
+    .replace(/-/g, '\\-')
+    .replace(/=/g, '\\=')
+    .replace(/\|/g, '\\|')
+    .replace(/\{/g, '\\{')
+    .replace(/\}/g, '\\}')
+    .replace(/\./g, '\\.')
+    .replace(/\!/g, '\\!');
+}
 
 // Функция для проверки и отправки уведомлений
 async function checkNotifications() {
@@ -463,19 +511,18 @@ async function checkNotifications() {
         const chatId = userChatIds.get(userId);
         
         if (chatId) {
-          // Сообщение с уведомлением
-          let message = `🔔 *Напоминание о задаче!*\n\n`;
-          message += `*${task.title}*\n`;
+          // Отправляем сообщение без Markdown для избежания ошибок
+          let message = `🔔 Напоминание о задаче!\n\n`;
+          message += `${task.title}\n`;
           
           if (task.description) {
-            message += `_${task.description}_\n\n`;
+            message += `${task.description}\n\n`;
           }
           
           message += `📅 Срок: ${task.due_date}\n`;
           message += `⏰ Время: ${task.due_time}\n`;
           
           bot.sendMessage(chatId, message, {
-            parse_mode: 'Markdown',
             reply_markup: {
               inline_keyboard: [
                 [{ text: '✅ Отметить выполненной', callback_data: `complete_task_${task.id}` }],
@@ -502,36 +549,6 @@ async function checkNotifications() {
 
 // Запускаем первую проверку уведомлений
 setTimeout(checkNotifications, 5000); // Запускаем через 5 секунд после старта бота
-
-// Обработчик команды /test для тестирования уведомлений
-bot.onText(/\/test/, (msg) => {
-  const chatId = msg.chat.id;
-  
-  // Сохраняем chat_id пользователя, если еще не сохранен
-  userChatIds.set(1, chatId);
-  
-  // Текущее время для отладки
-  const now = new Date();
-  const currentTime = now.toLocaleTimeString('ru-RU');
-  const currentDate = now.toLocaleDateString('ru-RU');
-  
-  // Отправляем тестовое уведомление
-  let message = `🔔 *Тестовое уведомление*\n\n`;
-  message += `Текущее время: ${currentTime}\n`;
-  message += `Текущая дата: ${currentDate}\n\n`;
-  message += `Ваш chat_id: ${chatId} сохранен для получения уведомлений.\n`;
-  message += `Количество сохраненных пользователей: ${userChatIds.size}`;
-  
-  bot.sendMessage(chatId, message, {
-    parse_mode: 'Markdown',
-    reply_markup: {
-      inline_keyboard: [
-        [{ text: '📋 Посмотреть задачи', callback_data: 'show_tasks' }],
-        [{ text: '🚀 Открыть приложение', web_app: { url: webAppUrl } }]
-      ]
-    }
-  });
-});
 
 bot.onText(/\/command/, (msg) => {
   // Установка команд для бота

@@ -75,7 +75,13 @@ export const mapTaskToApiTask = (task: Partial<Task>): Partial<ApiTask> => {
   
   // Добавляем остальные поля, если они есть
   if (task.description) apiTask.description = task.description;
-  if (task.dueDate) apiTask.due_date = task.dueDate.toISOString().split('T')[0];
+  if (task.dueDate) {
+    // Используем локальную дату без учета смещения временной зоны
+    const year = task.dueDate.getFullYear();
+    const month = String(task.dueDate.getMonth() + 1).padStart(2, '0');
+    const day = String(task.dueDate.getDate()).padStart(2, '0'); 
+    apiTask.due_date = `${year}-${month}-${day}`;
+  }
   if (task.dueTime) apiTask.due_time = task.dueTime;
   if (task.notification) apiTask.notification = task.notification;
   if (task.priority) apiTask.priority = task.priority;

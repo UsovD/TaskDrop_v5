@@ -7,6 +7,7 @@ import { AppRoot } from '@telegram-apps/telegram-ui';
 import App from './App';
 import './index.css';
 import './css/mobile.css';
+import './css/date-picker.css';
 import './js/mobileViewport';
 import './init';
 

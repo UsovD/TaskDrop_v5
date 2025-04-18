@@ -169,15 +169,103 @@ export const DatePickerPage: React.FC = () => {
     return notification || 'Укажите время';
   };
 
+  // Получение дней для текущего месяца
+  const getDaysInMonth = () => {
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    
+    // День недели первого числа месяца (0 - воскресенье, 1 - понедельник и т.д.)
+    // Преобразуем к формату, где 0 - понедельник, 6 - воскресенье
+    let firstDayOfWeek = firstDay.getDay() - 1;
+    if (firstDayOfWeek < 0) firstDayOfWeek = 6; // Если воскресенье (было 0), делаем его 6
+    
+    const days = [];
+    
+    // Добавляем дни из предыдущего месяца
+    if (firstDayOfWeek > 0) {
+      const prevMonthLastDay = new Date(year, month, 0);
+      const prevMonthDays = prevMonthLastDay.getDate();
+      
+      for (let i = 0; i < firstDayOfWeek; i++) {
+        days.push({
+          date: new Date(year, month - 1, prevMonthDays - firstDayOfWeek + i + 1),
+          isCurrentMonth: false
+        });
+      }
+    }
+    
+    // Добавляем дни текущего месяца
+    for (let i = 1; i <= lastDay.getDate(); i++) {
+      days.push({
+        date: new Date(year, month, i),
+        isCurrentMonth: true
+      });
+    }
+    
+    // Добавляем дни следующего месяца, чтобы заполнить последнюю неделю
+    const totalDaysVisible = Math.ceil((firstDayOfWeek + lastDay.getDate()) / 7) * 7;
+    const nextMonthDays = totalDaysVisible - days.length;
+    
+    for (let i = 1; i <= nextMonthDays; i++) {
+      days.push({
+        date: new Date(year, month + 1, i),
+        isCurrentMonth: false
+      });
+    }
+    
+    return days;
+  };
+
+  // Переключение на предыдущий месяц
+  const handlePrevMonth = () => {
+    setCurrentMonth(prev => {
+      const prevMonth = new Date(prev);
+      prevMonth.setMonth(prev.getMonth() - 1);
+      return prevMonth;
+    });
+  };
+
+  // Переключение на следующий месяц
+  const handleNextMonth = () => {
+    setCurrentMonth(prev => {
+      const nextMonth = new Date(prev);
+      nextMonth.setMonth(prev.getMonth() + 1);
+      return nextMonth;
+    });
+  };
+
+  // Выбор сегодняшней даты
+  const handleSelectToday = () => {
+    const today = new Date();
+    setSelectedDate(today);
+    setCurrentMonth(today);
+  };
+
+  // Выбор завтрашней даты
+  const handleSelectTomorrow = () => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    setSelectedDate(tomorrow);
+    setCurrentMonth(tomorrow);
+  };
+
+  // Очистка выбора даты
+  const handleClearSelection = () => {
+    setSelectedDate(null);
+    setSelectedTime('');
+    setSelectedNotification('');
+  };
+
   // Рендер выбора времени
   const renderTimePicker = () => {
     if (!showTimePicker) return null;
 
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 animate-in fade-in duration-200">
-        <div className="bg-black w-full max-w-md rounded-xl overflow-hidden animate-in slide-in-from-bottom duration-300 flex flex-col shadow-xl mx-auto my-auto">
-          {/* Header */}
-          <div className="flex items-center h-12 px-4 border-b border-zinc-800/50">
+      <div className="time-picker-modal">
+        <div className="picker-modal-content">
+          <div className="picker-modal-header">
             <button 
               onClick={() => setShowTimePicker(false)}
               className="w-8 h-8 flex items-center justify-center text-zinc-400"
@@ -188,7 +276,7 @@ export const DatePickerPage: React.FC = () => {
             <div className="w-8"></div>
           </div>
 
-          <div className="p-6 flex items-center justify-center">
+          <div className="picker-modal-body">
             <input
               type="time"
               value={selectedTime}
@@ -197,21 +285,19 @@ export const DatePickerPage: React.FC = () => {
             />
           </div>
 
-          <div className="p-4 border-t border-zinc-800/50">
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowTimePicker(false)}
-                className="flex-1 py-3 text-blue-400 text-sm font-medium"
-              >
-                Отменить
-              </button>
-              <button
-                onClick={() => setShowTimePicker(false)}
-                className="flex-1 py-3 bg-blue-500 text-white text-sm font-medium rounded-xl transition-colors hover:bg-blue-600 active:bg-blue-700"
-              >
-                Применить
-              </button>
-            </div>
+          <div className="picker-modal-footer">
+            <button
+              onClick={() => setShowTimePicker(false)}
+              className="flex-1 py-3 text-blue-400 text-sm font-medium"
+            >
+              Отменить
+            </button>
+            <button
+              onClick={() => setShowTimePicker(false)}
+              className="flex-1 py-3 bg-blue-500 text-white text-sm font-medium rounded-xl transition-colors"
+            >
+              Применить
+            </button>
           </div>
         </div>
       </div>
@@ -223,9 +309,9 @@ export const DatePickerPage: React.FC = () => {
     if (!showNotificationPicker) return null;
 
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 animate-in fade-in duration-200">
-        <div className="bg-black w-full max-w-md rounded-xl overflow-hidden animate-in slide-in-from-bottom duration-300 flex flex-col shadow-xl mx-auto my-auto">
-          <div className="flex items-center h-12 px-4 border-b border-zinc-800/50">
+      <div className="notification-picker-modal">
+        <div className="picker-modal-content">
+          <div className="picker-modal-header">
             <button 
               onClick={() => setShowNotificationPicker(false)}
               className="w-8 h-8 flex items-center justify-center text-zinc-400"
@@ -236,7 +322,7 @@ export const DatePickerPage: React.FC = () => {
             <div className="w-8"></div>
           </div>
 
-          <div className="p-4 max-h-[300px] overflow-y-auto">
+          <div className="picker-modal-body max-h-[300px] overflow-y-auto">
             <div className="space-y-2">
               {NOTIFICATION_OPTIONS.map((option) => (
                 <button
@@ -255,207 +341,105 @@ export const DatePickerPage: React.FC = () => {
               ))}
             </div>
           </div>
-
-          <div className="p-4 border-t border-zinc-800/50">
-            <div className="flex gap-3">
-              <button
-                onClick={() => {
-                  setSelectedNotification('');
-                  setShowNotificationPicker(false);
-                }}
-                className="flex-1 py-3 text-blue-400 text-sm font-medium"
-              >
-                Очистить
-              </button>
-              <button
-                onClick={() => setShowNotificationPicker(false)}
-                className="flex-1 py-3 bg-blue-500 text-white text-sm font-medium rounded-xl transition-colors hover:bg-blue-600 active:bg-blue-700"
-              >
-                Применить
-              </button>
-            </div>
-          </div>
         </div>
       </div>
     );
   };
 
+  // Получаем дни для сетки календаря
+  const daysInMonth = getDaysInMonth();
+
   return (
-    <div className={`app bg-black min-h-screen text-white transition-opacity duration-75 ${isExiting ? 'opacity-0' : 'opacity-100'}`}>
-      {/* Верхняя панель навигации */}
-      <div className="flex items-center p-4 border-b border-zinc-800">
-        <button 
-          onClick={handleBack}
-          className="w-8 h-8 flex items-center justify-center text-zinc-400"
-        >
-          <ChevronLeft size={20} />
+    <div className={`date-picker-page ${isExiting ? 'date-picker-fade-out' : 'date-picker-fade-in'}`}>
+      {/* Заголовок */}
+      <div className="header">
+        <button onClick={handleBack} className="w-10 h-10 flex items-center justify-center rounded-full">
+          <ChevronLeft size={24} color="#fff" />
         </button>
-        <span className="flex-1 text-center text-white font-medium">Выбор даты</span>
-        <div className="w-8"></div>
+        <h1 className="text-xl font-medium text-white">Выбор даты</h1>
+        <div className="w-10"></div>
+      </div>
+      
+      {/* Навигация месяцев */}
+      <div className="month-navigation">
+        <button onClick={handlePrevMonth} className="w-8 h-8 flex items-center justify-center">
+          <ChevronLeft size={20} color="#fff" />
+        </button>
+        <span className="text-lg font-medium text-white">
+          {`${MONTHS[currentMonth.getMonth()]} ${currentMonth.getFullYear()}`}
+        </span>
+        <button onClick={handleNextMonth} className="w-8 h-8 flex items-center justify-center">
+          <ChevronRight size={20} color="#fff" />
+        </button>
       </div>
 
-      <div className="p-4">
-        {/* Month Navigation */}
-        <div className="flex items-center justify-between mb-6">
-          <button 
-            onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))} 
-            className="w-8 h-8 flex items-center justify-center text-zinc-400"
-          >
-            <ChevronLeft size={20} />
-          </button>
-          <div className="text-base text-white font-medium">
-            {MONTHS[currentMonth.getMonth()]} {currentMonth.getFullYear()}
+      {/* Дни недели */}
+      <div className="calendar-grid">
+        {DAYS_OF_WEEK.map((day) => (
+          <div key={day} className="day-header text-zinc-400">
+            {day}
           </div>
-          <button 
-            onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))} 
-            className="w-8 h-8 flex items-center justify-center text-zinc-400"
-          >
-            <ChevronRight size={20} />
-          </button>
-        </div>
-
-        {/* Days of Week */}
-        <div className="grid grid-cols-7 mb-2">
-          {DAYS_OF_WEEK.map(day => (
-            <div key={day} className="text-center text-xs text-zinc-400 py-2 font-medium">
-              {day}
-            </div>
-          ))}
-        </div>
-
-        {/* Calendar Grid */}
-        <div className="grid grid-cols-7 gap-1">
-          {Array.from({ length: 42 }, (_, i) => {
-            const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1 - new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1).getDay() + i + 1);
-            const isCurrentMonth = date.getMonth() === currentMonth.getMonth();
-            const isSelected = date.toDateString() === selectedDate?.toDateString();
-            const isCurrentDate = isToday(date);
-            const isPast = isPastDate(date);
-
-            return (
-              <div key={i} className="aspect-square flex items-center justify-center">
-                <button
-                  onClick={() => !isPast && handleDateSelect(date)}
-                  disabled={isPast}
-                  className={`
-                    relative w-14 h-14 rounded-full flex items-center justify-center text-base
-                    ${!isCurrentMonth ? 'text-zinc-700' : ''}
-                    ${isCurrentMonth && isPast ? 'text-zinc-700' : ''}
-                    ${isCurrentMonth && !isPast && !isSelected ? 'text-white' : ''}
-                    ${isSelected ? 'bg-blue-500 text-white' : ''}
-                    ${isCurrentDate && !isSelected ? 'text-blue-400' : ''}
-                    ${!isPast && !isSelected ? 'hover:bg-zinc-800 active:bg-zinc-700' : ''}
-                    ${isPast ? 'cursor-not-allowed' : ''}
-                  `}
-                >
-                  {date.getDate()}
-                  {isCurrentDate && !isSelected && (
-                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-1 h-1 bg-blue-400 rounded-full" />
-                  )}
-                </button>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Quick Actions */}
-        <div className="grid grid-cols-3 gap-2 mt-6 border-t border-zinc-800 pt-6">
+        ))}
+        
+        {/* Даты */}
+        {daysInMonth.map((day, index) => (
           <button
-            onClick={() => setSelectedDate(null)}
-            className="flex items-center justify-center gap-1.5 py-3 text-blue-400 text-sm bg-zinc-800/70 rounded-lg"
+            key={index}
+            disabled={isPastDate(day.date)}
+            onClick={() => handleDateSelect(day.date)}
+            className={`date-cell ${
+              !day.isCurrentMonth 
+                ? 'text-zinc-600' 
+                : isPastDate(day.date) 
+                  ? 'text-zinc-700' 
+                  : isToday(day.date) 
+                    ? 'text-blue-400 font-bold' 
+                    : 'text-white'
+            } ${
+              selectedDate && 
+              selectedDate.getDate() === day.date.getDate() &&
+              selectedDate.getMonth() === day.date.getMonth() &&
+              selectedDate.getFullYear() === day.date.getFullYear()
+                ? 'bg-blue-500 text-white'
+                : ''
+            }`}
           >
-            <span>Очистить</span>
+            {day.date.getDate()}
           </button>
-          <button
-            onClick={() => handleDateSelect(new Date())}
-            className="flex items-center justify-center gap-1.5 py-3 text-blue-400 text-sm bg-zinc-800/70 rounded-lg"
-          >
-            <span>Сегодня</span>
-          </button>
-          <button
-            onClick={() => {
-              const tomorrow = new Date();
-              tomorrow.setDate(tomorrow.getDate() + 1);
-              handleDateSelect(tomorrow);
-            }}
-            className="flex items-center justify-center gap-1.5 py-3 text-blue-400 text-sm bg-zinc-800/70 rounded-lg"
-          >
-            <span>Завтра</span>
-          </button>
-        </div>
+        ))}
+      </div>
 
-        {/* Time and Notifications */}
-        <div className="space-y-0 mt-4 border-t border-zinc-800/50">
-          <button 
-            onClick={() => setShowTimePicker(true)}
-            className="w-full flex items-center justify-between py-4 text-zinc-400 border-b border-zinc-800/50"
-          >
-            <div className="flex items-center gap-3">
-              <Clock size={18} className="text-zinc-400" />
-              <span className="text-sm">Время</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className={`text-sm ${selectedTime ? 'text-white' : 'text-zinc-600'}`}>
-                {formatTime(selectedTime)}
-              </span>
-              {selectedTime && (
-                <button 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedTime('');
-                  }}
-                  className="p-1 text-zinc-500 hover:text-zinc-300"
-                >
-                  <X size={16} />
-                </button>
-              )}
-            </div>
-          </button>
-          <button 
-            onClick={() => setShowNotificationPicker(true)}
-            className="w-full flex items-center justify-between py-4 text-zinc-400"
-          >
-            <div className="flex items-center gap-3">
-              <Bell size={18} className="text-zinc-400" />
-              <span className="text-sm">Уведомления</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className={`text-sm ${selectedNotification ? 'text-white' : 'text-zinc-600'}`}>
-                {formatNotification(selectedNotification)}
-              </span>
-              {selectedNotification && (
-                <button 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedNotification('');
-                  }}
-                  className="p-1 text-zinc-500 hover:text-zinc-300"
-                >
-                  <X size={16} />
-                </button>
-              )}
-            </div>
-          </button>
-        </div>
+      {/* Кнопки быстрого выбора */}
+      <div className="quick-buttons">
+        <button onClick={handleClearSelection}>Очистить</button>
+        <button onClick={handleSelectToday}>Сегодня</button>
+        <button onClick={handleSelectTomorrow}>Завтра</button>
+      </div>
 
-        {/* Action Buttons */}
-        <div className="flex mt-6">
-          <button
-            onClick={handleBack}
-            className="flex-1 py-4 text-blue-400 text-base font-medium"
-          >
-            Отменить
-          </button>
-          <button
-            onClick={handleApply}
-            className="flex-1 py-4 bg-blue-500 text-white text-base font-medium rounded-lg"
-          >
-            Применить
-          </button>
+      {/* Выбор времени */}
+      <div className="time-section" onClick={() => setShowTimePicker(true)}>
+        <Clock size={20} className="section-icon" />
+        <div className="section-content">
+          <div className="text-white">Время</div>
+          <div className="text-zinc-400">{formatTime(selectedTime)}</div>
         </div>
       </div>
 
-      {/* Render pickers */}
+      {/* Уведомления */}
+      <div className="notification-section" onClick={() => setShowNotificationPicker(true)}>
+        <Bell size={20} className="section-icon" />
+        <div className="section-content">
+          <div className="text-white">Уведомить</div>
+          <div className="text-zinc-400">{formatNotification(selectedNotification)}</div>
+        </div>
+      </div>
+
+      {/* Кнопка сохранения */}
+      <button className="save-button" onClick={handleApply}>
+        Сохранить
+      </button>
+
+      {/* Модальные окна */}
       {renderTimePicker()}
       {renderNotificationPicker()}
     </div>

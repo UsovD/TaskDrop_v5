@@ -77,19 +77,14 @@ export const TaskEditPage: React.FC = () => {
       const apiTaskData = mapTaskToApiTask(editedTask);
       
       // Отправляем изменения на сервер
-      const updatedApiTask = await apiClient.updateTask(String(editedTask.id), apiTaskData);
+      const updatedApiTask = await apiClient.updateTask(editedTask.id, apiTaskData);
       console.log('Ответ от сервера:', updatedApiTask);
       
       // Конвертируем обратно в формат для фронтенда
       const updatedTask = mapApiTaskToTask(updatedApiTask);
       
-      // Тихо перезагружаем страницу с обновленными данными
-      navigate(`/edit-task/${taskId}`, { 
-        state: { 
-          task: updatedTask
-        },
-        replace: true // Заменяем текущую запись в истории навигации
-      });
+      // Возвращаемся на главную и передаем обновленную задачу
+      navigate('/', { state: { editedTask: updatedTask } });
     } catch (error) {
       console.error('Ошибка при сохранении задачи:', error);
       alert('Произошла ошибка при сохранении задачи');
@@ -126,11 +121,22 @@ export const TaskEditPage: React.FC = () => {
       selectedDate?: string,
       selectedTime?: string,
       selectedNotification?: string,
-      taskTitle?: string // Добавляем поле для названия задачи
+      taskTitle?: string, // Добавляем поле для названия задачи
+      forceUpdate?: number // Метка времени для принудительного обновления
     } || {};
 
-    // Если вернулись с datepicker и есть данные о задаче
-    if (state.selectedDate || state.selectedTime || state.selectedNotification) {
+    console.log("Страница редактирования: получено состояние", state);
+
+    // Если вернулись с datepicker и есть данные о дате или метка принудительного обновления
+    if (state.selectedDate || state.selectedTime || state.selectedNotification || state.forceUpdate) {
+      // Если пришли от DatePicker, принудительно обновляем задачу с сервера
+      if (state.forceUpdate) {
+        console.log("Принудительное обновление задачи с сервера");
+        loadTask().then(() => {
+          console.log("Задача обновлена с сервера");
+        });
+      }
+      
       if (state.selectedDate) {
         setDueDate(new Date(state.selectedDate));
       }

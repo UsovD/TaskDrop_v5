@@ -31,6 +31,7 @@ export interface Task {
   notes?: string;            // Дополнительные заметки
   location?: string;         // Место выполнения задачи
   repeat?: string;           // Повторение задачи (ежедневно, еженедельно и т.д.)
+  userId?: number;           // ID пользователя-владельца задачи
 }
 
 export interface CategoryInfo {

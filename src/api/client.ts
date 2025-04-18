@@ -1,4 +1,5 @@
 const API_BASE_URL = 'https://taskdrop-render-backend.onrender.com';
+import { getUserData } from '../utils/userHelper';
 
 // Интерфейс для API задачи (используем обновленный формат сервера)
 export interface ApiTask {
@@ -20,7 +21,26 @@ export interface ApiTask {
 }
 
 class ApiClient {
-  private userId = 1; // Временное решение для демонстрации
+  private userId: number | null = null;
+
+  // Метод для получения ID пользователя
+  private async getUserId(): Promise<number> {
+    if (this.userId !== null) {
+      return this.userId;
+    }
+
+    try {
+      const userData = await getUserData();
+      this.userId = userData.id;
+      console.log('Получен ID пользователя:', this.userId);
+      return this.userId;
+    } catch (error) {
+      console.error('Ошибка при получении ID пользователя:', error);
+      // В случае ошибки используем временный ID
+      this.userId = 1;
+      return this.userId;
+    }
+  }
 
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     try {
@@ -59,15 +79,18 @@ class ApiClient {
 
   // Получение всех задач
   async getTasks(): Promise<ApiTask[]> {
-    return this.request<ApiTask[]>(`/tasks?user_id=${this.userId}`);
+    const userId = await this.getUserId();
+    return this.request<ApiTask[]>(`/tasks?user_id=${userId}`);
   }
 
   // Создание новой задачи
   async createTask(task: Omit<ApiTask, 'id' | 'created_at'>): Promise<ApiTask> {
+    const userId = await this.getUserId();
+    
     const response = await this.request<{ id: string; success: boolean }>('/tasks', {
       method: 'POST',
       body: JSON.stringify({
-        user_id: this.userId,
+        user_id: userId,
         text: task.title,
         description: task.description,
         due_date: task.due_date,
@@ -98,7 +121,8 @@ class ApiClient {
       location: task.location,
       repeat: task.repeat,
       done: task.done || false,
-      created_at: new Date().toISOString()
+      created_at: new Date().toISOString(),
+      user_id: userId
     };
   }
 
@@ -125,11 +149,14 @@ class ApiClient {
       // Получаем текущую задачу, чтобы иметь все поля
       const currentTask = await this.getTask(id);
       
+      // Получаем ID пользователя
+      const userId = await this.getUserId();
+      
       // Создаем новую задачу с обновленными данными
       const newTaskData = {
         ...currentTask,
         ...task,
-        user_id: this.userId
+        user_id: userId
       };
       
       // Создаем новый объект без id и created_at

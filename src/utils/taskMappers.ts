@@ -1,5 +1,6 @@
 import { Task, TaskCategory, TaskPriority } from '../types/Task';
 import { ApiTask } from '../api/client';
+import { getUserData } from './userHelper';
 
 // Преобразуем задачу из API в задачу для фронтенда
 export const mapApiTaskToTask = (apiTask: ApiTask): Task => {
@@ -55,6 +56,7 @@ export const mapApiTaskToTask = (apiTask: ApiTask): Task => {
   if (apiTask.notes) task.notes = apiTask.notes;
   if (apiTask.location) task.location = apiTask.location;
   if (apiTask.repeat) task.repeat = apiTask.repeat;
+  if (apiTask.user_id) task.userId = apiTask.user_id;
   
   return task;
 };
@@ -64,9 +66,13 @@ export const mapTaskToApiTask = (task: Partial<Task>): Partial<ApiTask> => {
   // Создаем базовый объект задачи для API
   const apiTask: Partial<ApiTask> = {
     title: task.title || '',
-    done: task.completed ?? false,
-    user_id: 1 // Временное решение
+    done: task.completed ?? false
   };
+  
+  // Добавляем ID пользователя, если он есть
+  if (task.userId) {
+    apiTask.user_id = task.userId;
+  }
   
   // Добавляем остальные поля, если они есть
   if (task.description) apiTask.description = task.description;

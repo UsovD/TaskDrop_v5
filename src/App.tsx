@@ -164,7 +164,10 @@ const MainPage: React.FC = () => {
         </div>
       )}
       
-      <UserInfo />
+      <div className="app-header">
+        <h1>TaskDrop</h1>
+        <UserInfo />
+      </div>
       
       <TaskList
         tasks={tasks}

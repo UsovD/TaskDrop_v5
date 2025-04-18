@@ -64,15 +64,17 @@ body {
 }
 
 .app-header {
-  padding: var(--spacing-lg) var(--spacing-md);
+  padding: var(--spacing-md) 0 0;
   background: var(--background-primary);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: none;
 }
 
 .app-header h1 {
   font-size: 28px;
   font-weight: 700;
   margin: 0;
+  padding: 16px 16px 0;
+  color: white;
 }
 
 .categories-list {
@@ -277,25 +279,25 @@ body {
 .user-info {
   display: flex;
   align-items: center;
-  padding: 12px 16px;
-  background-color: #1a1a1a;
-  border-radius: 12px;
+  padding: 16px;
   margin-bottom: 16px;
+  background-color: transparent;
+  border-radius: 0;
 }
 
 .user-avatar {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   overflow: hidden;
-  margin-right: 12px;
-  background-color: #2b89ff;
+  margin-right: 10px;
+  background-color: #333;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
   font-weight: 500;
-  font-size: 18px;
+  font-size: 16px;
 }
 
 .user-avatar img {
@@ -312,20 +314,21 @@ body {
   justify-content: center;
   color: white;
   font-weight: 500;
-  font-size: 18px;
-  background-color: #2b89ff;
+  font-size: 16px;
+  background-color: #333;
 }
 
 .user-name {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 500;
   color: white;
 }
 
 .user-info-skeleton {
-  height: 64px;
-  background-color: #1a1a1a;
-  border-radius: 12px;
+  height: 36px;
+  width: 100%;
+  background-color: transparent;
+  padding: 16px;
   margin-bottom: 16px;
   position: relative;
   overflow: hidden;
@@ -356,6 +359,6 @@ body {
 }
 
 .user-info-error {
-  background-color: rgba(220, 38, 38, 0.1);
-  border: 1px solid rgba(220, 38, 38, 0.2);
+  background-color: transparent;
+  border: none;
 } 

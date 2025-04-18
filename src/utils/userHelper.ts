@@ -46,7 +46,7 @@ export const getUserData = async (): Promise<UserData> => {
     console.log('Проверка WebApp объекта:', Boolean(window.Telegram?.WebApp));
     
     // Проверяем, запущено ли приложение в Telegram
-    const isTelegram = await isTMA('any'); // Меняем на 'any' для более мягкой проверки
+    const isTelegram = await isTMA('complete'); // Используем 'complete' для соответствия типам
     console.log('isTMA результат:', isTelegram);
     
     // Даже если isTMA вернул false, попробуем получить данные напрямую
@@ -82,7 +82,8 @@ export const getUserData = async (): Promise<UserData> => {
       id: 1,
       first_name: 'Denis',
       last_name: 'Usov',
-      username: 'denisusov'
+      username: 'denisusov',
+      photo_url: 'https://i.pravatar.cc/300?u=denisusov' // Добавляем временную аватарку
     };
   } catch (error) {
     console.error('Error getting user data:', error);
@@ -91,7 +92,8 @@ export const getUserData = async (): Promise<UserData> => {
       id: 1,
       first_name: 'Denis',
       last_name: 'Usov',
-      username: 'denisusov'
+      username: 'denisusov',
+      photo_url: 'https://i.pravatar.cc/300?u=denisusov' // Добавляем временную аватарку
     };
   }
 };
@@ -105,6 +107,6 @@ const getMockUserData = (): UserData => {
     first_name: 'Тестовый',
     last_name: 'Пользователь',
     username: 'test_user',
-    photo_url: undefined
+    photo_url: 'https://i.pravatar.cc/300?u=test_user' // Добавляем аватарку для тестового пользователя
   };
 }; 

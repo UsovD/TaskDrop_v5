@@ -2,10 +2,18 @@
 <html lang="en">
   <head>
     <meta charset="utf-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
     <meta name="theme-color" content="#000000"/>
-    <title>Telegram Mini App</title>
+    <meta name="apple-mobile-web-app-capable" content="yes"/>
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+    <meta name="format-detection" content="telephone=no"/>
+    <meta name="mobile-web-app-capable" content="yes"/>
+    <title>TaskDrop</title>
     <style>
+      * {
+        -webkit-tap-highlight-color: transparent;
+        box-sizing: border-box;
+      }
       html, body {
         margin: 0;
         padding: 0;
@@ -13,12 +21,22 @@
         color: #ffffff;
         min-height: 100vh;
         width: 100%;
+        height: 100%;
+        overflow: hidden;
+        position: fixed;
+        touch-action: manipulation;
       }
       #root {
         background-color: #000000;
-        height: 100vh;
+        height: 100%;
         width: 100%;
-        overflow: hidden;
+        overflow: auto;
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        -webkit-overflow-scrolling: touch;
       }
     </style>
   </head>

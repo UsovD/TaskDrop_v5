@@ -34,7 +34,6 @@ export const DatePickerPage: React.FC = () => {
   } || {};
   
   const initialDate = state.initialDate ? new Date(state.initialDate) : new Date();
-  const returnToEdit = state.returnToEdit || false;
   const taskId = state.taskId;
   const taskTitle = state.taskTitle || '';
   

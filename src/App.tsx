@@ -4,7 +4,6 @@ import { Task } from './types/Task';
 import { TaskList } from './components/TaskList';
 import { DatePickerPage } from './DatePickerPage';
 import { TaskEditPage } from './TaskEditPage';
-import { AppHeader } from './components/AppHeader';
 import { apiClient } from './api/client';
 import { mapApiTaskToTask, mapTaskToApiTask } from './utils/taskMappers';
 import './css/components.css';
@@ -31,8 +30,7 @@ const PageTransition: React.FC<{ children: React.ReactNode }> = ({ children }) =
   );
 };
 
-// Компонент для основного контента без заголовка (для использования на внутренних страницах)
-const MainContent: React.FC = () => {
+const MainPage: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -157,7 +155,7 @@ const MainContent: React.FC = () => {
   };
 
   return (
-    <>
+    <div className="app">
       {error && (
         <div className="error-message">
           {error}
@@ -173,16 +171,6 @@ const MainContent: React.FC = () => {
         isAddingTask={isAddingTask}
         isLoading={isLoading}
       />
-    </>
-  );
-};
-
-// Компонент для главной страницы с заголовком
-const MainPage: React.FC = () => {
-  return (
-    <div className="app">
-      <AppHeader />
-      <MainContent />
     </div>
   );
 };
@@ -198,16 +186,12 @@ const AppRoutes: React.FC = () => {
         } />
         <Route path="/datepicker" element={
           <PageTransition>
-            <div className="app">
-              <DatePickerPage key="datepicker" />
-            </div>
+            <DatePickerPage key="datepicker" />
           </PageTransition>
         } />
         <Route path="/edit-task/:taskId" element={
           <PageTransition>
-            <div className="app">
-              <TaskEditPage key="taskedit" />
-            </div>
+            <TaskEditPage key="taskedit" />
           </PageTransition>
         } />
       </Routes>

@@ -2,12 +2,14 @@
 
 :root {
   --app-height: 100%;
+  --vh: 1vh;
 }
 
 html, body, #root {
   width: 100%;
   height: 100%;
-  height: var(--app-height);
+  height: 100dvh; /* Новый стандартный подход */
+  height: calc(var(--vh, 1vh) * 100); /* Fallback для старых браузеров */
   overflow: hidden;
   padding: 0;
   margin: 0;
@@ -20,7 +22,8 @@ body {
   position: fixed;
   width: 100%;
   height: 100%;
-  height: var(--app-height);
+  height: 100dvh;
+  height: calc(var(--vh, 1vh) * 100);
   overflow: hidden;
 }
 
@@ -33,23 +36,28 @@ body {
   bottom: 0;
   width: 100%;
   height: 100%;
-  height: var(--app-height);
+  height: 100dvh;
+  height: calc(var(--vh, 1vh) * 100);
   overflow: auto;
   background-color: #000000;
 }
 
 .app {
   min-height: 100%;
-  min-height: var(--app-height);
+  min-height: 100dvh;
+  min-height: calc(var(--vh, 1vh) * 100);
   width: 100%;
   overflow-y: auto;
   overflow-x: hidden;
+  /* Добавляем также -webkit-fill-available как дополнительный fallback */
+  min-height: -webkit-fill-available;
 }
 
 /* Стили для страницы редактирования задачи */
 .task-edit-page {
   min-height: 100%;
-  min-height: var(--app-height);
+  min-height: 100dvh;
+  min-height: calc(var(--vh, 1vh) * 100);
   width: 100%;
   overflow-y: auto;
   padding-bottom: 100px; /* Добавляем отступ снизу, чтобы контент был виден */
@@ -58,6 +66,7 @@ body {
 /* Анимации */
 .page-transition {
   min-height: 100%;
-  min-height: var(--app-height);
+  min-height: 100dvh;
+  min-height: calc(var(--vh, 1vh) * 100);
   background-color: #000000;
 } 

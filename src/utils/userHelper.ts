@@ -36,6 +36,8 @@ export const getUserData = async (): Promise<UserData> => {
     const isTelegram = await isTMA('complete');
     
     if (!isTelegram) {
+      // При запуске вне Telegram используем тестовый ID
+      console.log('Приложение запущено вне Telegram, используется тестовый user_id');
       return getMockUserData();
     }
     
@@ -43,13 +45,17 @@ export const getUserData = async (): Promise<UserData> => {
     const telegramWebApp = window.Telegram?.WebApp;
     
     if (!telegramWebApp || !telegramWebApp.initDataUnsafe || !telegramWebApp.initDataUnsafe.user) {
+      console.log('Не удалось получить данные пользователя из Telegram WebApp, используется тестовый user_id');
       return getMockUserData();
     }
     
     const user = telegramWebApp.initDataUnsafe.user;
     
+    // Используем реальный Telegram ID пользователя
+    console.log(`Получен реальный Telegram ID пользователя: ${user.id}`);
+    
     return {
-      id: user.id,
+      id: user.id, // Используем реальный ID пользователя
       first_name: user.first_name,
       last_name: user.last_name,
       username: user.username,
@@ -65,8 +71,12 @@ export const getUserData = async (): Promise<UserData> => {
  * Возвращает фиктивные данные пользователя для тестирования
  */
 const getMockUserData = (): UserData => {
+  // Для тестирования используем отдельный ID, чтобы не смешивать данные с реальными пользователями
+  const testUserId = 999999;
+  console.log(`Используется тестовый ID: ${testUserId}`);
+  
   return {
-    id: 0,
+    id: testUserId,
     first_name: 'Тестовый',
     last_name: 'Пользователь',
     username: 'test_user',

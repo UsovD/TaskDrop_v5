@@ -82,9 +82,20 @@ export const DatePickerPage: React.FC = () => {
       if (taskId) {
         console.log('Обрабатываем выбор даты для задачи с ID:', taskId);
         
+        // Корректируем дату для правильной обработки часового пояса
+        let dateStr = undefined;
+        if (selectedDate) {
+          // Получаем локальную дату без учета времени
+          const year = selectedDate.getFullYear();
+          const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+          const day = String(selectedDate.getDate()).padStart(2, '0');
+          dateStr = `${year}-${month}-${day}`;
+          console.log('Форматированная дата для отправки:', dateStr);
+        }
+        
         // Создаем объект с обновленными данными
         const updatedTask: Partial<Omit<ApiTask, "id" | "created_at">> = {
-          due_date: selectedDate ? selectedDate.toISOString().split('T')[0] : undefined,
+          due_date: dateStr,
           due_time: selectedTime || undefined,
           notification: selectedNotification || undefined
         };
@@ -96,18 +107,14 @@ export const DatePickerPage: React.FC = () => {
           const result = await apiClient.updateTask(String(taskId), updatedTask);
           console.log('Задача успешно обновлена на сервере:', result);
           
-          // Переходим на страницу редактирования задачи
+          // Устанавливаем таймаут для анимации
           setTimeout(() => {
-            console.log(`Перенаправляем на страницу редактирования задачи: /edit-task/${taskId}`);
-            navigate(`/edit-task/${taskId}`, { 
-              state: { 
-                selectedDate: selectedDate?.toISOString(),
-                selectedTime,
-                selectedNotification,
-                taskTitle,
-                forceUpdate: new Date().getTime() // Добавляем временную метку для принудительного обновления
-              } 
-            });
+            // Используем абсолютный путь вместо относительного
+            const url = `/edit-task/${taskId}`;
+            console.log(`Перенаправляем на страницу редактирования задачи: ${url}`);
+            
+            // Вместо простого navigate используем window.location
+            window.location.href = url;
           }, 70);
         } catch (err) {
           console.error('Ошибка при обновлении задачи:', err);
@@ -115,7 +122,7 @@ export const DatePickerPage: React.FC = () => {
           
           // Даже при ошибке возвращаемся на страницу редактирования
           setTimeout(() => {
-            navigate(`/edit-task/${taskId}`);
+            window.location.href = `/edit-task/${taskId}`;
           }, 70);
         }
       } else {

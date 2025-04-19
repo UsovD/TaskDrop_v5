@@ -178,6 +178,8 @@ const MainPage: React.FC = () => {
         isAddingTask={isAddingTask}
         isLoading={isLoading}
       />
+      
+      <AppVersion className="app-version-main" showDetails={true} />
     </div>
   );
 };
@@ -202,7 +204,6 @@ const AppRoutes: React.FC = () => {
           </PageTransition>
         } />
       </Routes>
-      <AppVersion className="app-version-footer" showDetails={true} />
     </div>
   );
 }

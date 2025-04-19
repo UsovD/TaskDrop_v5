@@ -101,14 +101,16 @@ export const TaskList: React.FC<TaskListProps> = ({
       <div className="max-w-2xl mx-auto p-6">
         <div className="mb-6 header-container">
           <div className="header-content">
-            <h1 className="text-2xl font-bold text-white mb-1">
-              TaskDrop
-            </h1>
-            <p className="text-xs text-zinc-400">
-              Управляй своими делами
-            </p>
+            <div className="flex flex-col">
+              <h1 className="text-2xl font-bold text-white mb-1">
+                TaskDrop
+              </h1>
+              <p className="text-xs text-zinc-400">
+                Управляй своими делами
+              </p>
+            </div>
+            <UserInfo />
           </div>
-          <UserInfo />
         </div>
 
         {isLoading ? (

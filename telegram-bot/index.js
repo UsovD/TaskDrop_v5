@@ -379,18 +379,22 @@ bot.on('callback_query', async (callbackQuery) => {
       const forwardedMessage = callbackQuery.message.reply_to_message;
       const taskTitle = forwardedMessage.text || forwardedMessage.caption || 'Задача из Telegram';
       
-      // Используем Telegram ID пользователя
-      const telegramUserId = callbackQuery.from.id;
+      // Получаем пользователя через функцию getOrCreateUser
+      const user = await getOrCreateUser({
+        chat: { id: chatId },
+        from: callbackQuery.from
+      });
       
-      // Создаем данные задачи
+      // Создаем данные задачи с корректным ID пользователя
       const taskData = {
-        user_id: telegramUserId,
+        user_id: user.id, // Используем ID пользователя из базы данных
         title: taskTitle.substring(0, 100), // Ограничиваем длину заголовка
         description: taskTitle.length > 100 ? taskTitle.substring(100) : '',
         due_date: new Date().toISOString().split('T')[0], // Сегодняшняя дата как срок по умолчанию
         priority: 'medium'
       };
       
+      console.log(`Создание задачи для пользователя: ${user.first_name} (ID: ${user.id})`);
       const response = await axios.post(`${apiUrl}/tasks`, taskData);
       
       console.log('Ответ API:', JSON.stringify(response.data));

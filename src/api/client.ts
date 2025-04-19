@@ -25,23 +25,30 @@ class ApiClient {
 
   // Метод для получения ID пользователя
   private async getUserId(): Promise<number> {
-    if (this.userId !== null) {
+    if (this.userId !== null && this.userId > 0) {
       return this.userId;
     }
 
     try {
       const userData = await getUserData();
-      this.userId = userData.id;
-      console.log('Получен ID пользователя:', this.userId);
       
-      // Сохраняем ID в localStorage для резервного использования
-      try {
-        localStorage.setItem('user_telegram_id', String(this.userId));
-      } catch (e) {
-        console.warn('Не удалось сохранить ID в localStorage:', e);
+      // Проверяем, что получен корректный ID (не равный 0)
+      if (userData.id && userData.id > 0) {
+        this.userId = userData.id;
+        console.log('Получен ID пользователя:', this.userId);
+        
+        // Сохраняем ID в localStorage для резервного использования
+        try {
+          localStorage.setItem('user_telegram_id', String(this.userId));
+        } catch (e) {
+          console.warn('Не удалось сохранить ID в localStorage:', e);
+        }
+        
+        return this.userId;
+      } else {
+        console.warn('Получен некорректный ID пользователя (равен 0 или пустой):', userData.id);
+        throw new Error('Invalid user ID');
       }
-      
-      return this.userId;
     } catch (error) {
       console.error('Ошибка при получении ID пользователя:', error);
       
@@ -60,11 +67,11 @@ class ApiClient {
         console.warn('Не удалось получить ID из localStorage:', e);
       }
       
-      // Если всё остальное не сработало, генерируем случайный ID
-      const randomId = Math.floor(Math.random() * 1000000) + 3000;
-      console.warn('Сгенерирован случайный ID пользователя:', randomId);
-      this.userId = randomId;
-      return randomId;
+      // Используем фиксированный ID по умолчанию
+      const defaultId = 1;
+      console.warn('Используем ID пользователя по умолчанию:', defaultId);
+      this.userId = defaultId;
+      return defaultId;
     }
   }
 
@@ -109,27 +116,63 @@ class ApiClient {
     return this.request<ApiTask[]>(`/tasks?user_id=${userId}`);
   }
 
-  // Получение всех задач пользователя, включая задачи с ID=1
+  // Получение всех задач пользователя, включая задачи с ID=0 и ID=1
   async getAllUserTasks(): Promise<ApiTask[]> {
     try {
       const userId = await this.getUserId();
-      // Запрашиваем задачи по Telegram ID
-      const tasks = await this.request<ApiTask[]>(`/tasks?user_id=${userId}`);
+      console.log('Запрашиваем задачи для пользователя с ID:', userId);
       
-      // Если ID пользователя не равен 1, запрашиваем также задачи с ID=1
+      // Создаем массив для всех задач
+      let allTasks: ApiTask[] = [];
+      
+      // Запрашиваем задачи по текущему ID пользователя
+      try {
+        const userTasks = await this.request<ApiTask[]>(`/tasks?user_id=${userId}`);
+        console.log(`Найдено ${userTasks.length} задач с user_id=${userId}`);
+        allTasks = [...allTasks, ...userTasks];
+      } catch (e) {
+        console.warn(`Не удалось загрузить задачи для user_id=${userId}:`, e);
+      }
+      
+      // Если ID пользователя не равен 0, проверяем задачи с user_id=0
+      if (userId !== 0) {
+        try {
+          const zeroTasks = await this.request<ApiTask[]>(`/tasks?user_id=0`);
+          if (zeroTasks && zeroTasks.length > 0) {
+            console.log(`Найдено ${zeroTasks.length} задач с user_id=0`);
+            allTasks = [...allTasks, ...zeroTasks];
+          }
+        } catch (e) {
+          console.warn("Не удалось загрузить задачи с user_id=0:", e);
+        }
+      }
+      
+      // Если ID пользователя не равен 1, проверяем задачи с user_id=1
       if (userId !== 1) {
         try {
           const legacyTasks = await this.request<ApiTask[]>(`/tasks?user_id=1`);
           if (legacyTasks && legacyTasks.length > 0) {
-            console.log(`Найдены устаревшие задачи с user_id=1:`, legacyTasks);
-            return [...tasks, ...legacyTasks];
+            console.log(`Найдено ${legacyTasks.length} задач с user_id=1`);
+            allTasks = [...allTasks, ...legacyTasks];
           }
         } catch (e) {
-          console.warn("Не удалось загрузить устаревшие задачи:", e);
+          console.warn("Не удалось загрузить задачи с user_id=1:", e);
         }
       }
       
-      return tasks;
+      // Выводим итоговое количество загруженных задач
+      console.log(`Всего загружено ${allTasks.length} задач`);
+      
+      // Удаляем возможные дубликаты (по id)
+      const uniqueTasks = [...new Map(allTasks.map(task => 
+        [task.id, task]
+      )).values()];
+      
+      if (uniqueTasks.length < allTasks.length) {
+        console.log(`Удалено ${allTasks.length - uniqueTasks.length} дубликатов задач`);
+      }
+      
+      return uniqueTasks;
     } catch (error) {
       console.error("Ошибка при получении задач:", error);
       throw error;
@@ -140,10 +183,14 @@ class ApiClient {
   async createTask(task: Omit<ApiTask, 'id' | 'created_at'>): Promise<ApiTask> {
     const userId = await this.getUserId();
     
+    // Гарантируем, что ID пользователя не равен 0
+    const safeUserId = userId === 0 ? 1 : userId;
+    console.log('Создание задачи для пользователя с ID:', safeUserId);
+    
     const response = await this.request<{ id: string; success: boolean }>('/tasks', {
       method: 'POST',
       body: JSON.stringify({
-        user_id: userId,
+        user_id: safeUserId,
         title: task.title,
         description: task.description,
         due_date: task.due_date,
@@ -175,7 +222,7 @@ class ApiClient {
       repeat: task.repeat,
       done: task.done || false,
       created_at: new Date().toISOString(),
-      user_id: userId
+      user_id: safeUserId
     };
   }
 
@@ -204,12 +251,14 @@ class ApiClient {
       
       // Получаем ID пользователя
       const userId = await this.getUserId();
+      // Гарантируем, что ID пользователя не равен 0
+      const safeUserId = userId === 0 ? 1 : userId;
       
       // Создаем новую задачу с обновленными данными
       const newTaskData = {
         ...currentTask,
         ...task,
-        user_id: userId
+        user_id: safeUserId
       };
       
       // Создаем новый объект без id и created_at

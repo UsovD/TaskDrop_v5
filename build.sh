@@ -5,6 +5,10 @@ echo "Current directory: $(pwd)"
 echo "Directory contents:"
 ls -la
 
+# Выводим версию Node.js и NPM
+echo "Node version: $(node -v)"
+echo "NPM version: $(npm -v)"
+
 # Устанавливаем зависимости
 echo "Installing dependencies..."
 npm install

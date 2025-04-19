@@ -6,6 +6,7 @@ import { DatePickerPage } from './DatePickerPage';
 import { TaskEditPage } from './TaskEditPage';
 import { apiClient } from './api/client';
 import { mapApiTaskToTask, mapTaskToApiTask } from './utils/taskMappers';
+import { AppVersion } from './components/AppVersion';
 import './css/components.css';
 
 // Компонент для обеспечения плавного перехода между страницами
@@ -201,6 +202,7 @@ const AppRoutes: React.FC = () => {
           </PageTransition>
         } />
       </Routes>
+      <AppVersion className="app-version-footer" showDetails={true} />
     </div>
   );
 }

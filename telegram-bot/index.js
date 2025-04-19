@@ -189,16 +189,17 @@ bot.onText(/\/webapp/, (msg) => {
 // Обработчик команды /tasks - получает и отображает задачи из API
 bot.onText(/\/tasks/, async (msg) => {
   const chatId = msg.chat.id;
+  const telegramUserId = msg.from.id;
   
   try {
-    // Получаем пользователя
-    const user = await getOrCreateUser(msg);
+    // Сохраняем chat_id пользователя для уведомлений
+    userChatIds.set(telegramUserId, chatId);
     
     // Сообщаем пользователю, что загружаем задачи
     bot.sendMessage(chatId, 'Загружаю список задач...');
     
-    // Делаем запрос к API для получения задач с корректным ID пользователя
-    const response = await axios.get(`${apiUrl}/tasks?user_id=${user.id}`);
+    // Делаем запрос к API для получения задач по Telegram ID пользователя
+    const response = await axios.get(`${apiUrl}/tasks?user_id=${telegramUserId}`);
     const tasks = response.data;
     
     if (tasks.length === 0) {
@@ -373,30 +374,23 @@ bot.on('callback_query', async (callbackQuery) => {
       }
     });
   } else if (data === 'create_task_from_forward') {
-    // Получаем текст из пересланного сообщения
-    const messageText = callbackQuery.message.text;
-    console.log('Исходный текст сообщения:', messageText);
-    
-    // Извлекаем текст сообщения, пропуская первую строку с "Переслано от:"
-    const textParts = messageText.split('\n');
-    const firstLine = textParts.length > 1 ? textParts[1] : messageText;
-    const remainingText = textParts.slice(1).join('\n');
-    
-    console.log('Заголовок задачи:', firstLine);
-    console.log('Описание задачи:', remainingText);
-    
     try {
-      // Подготавливаем данные для отправки в API
+      // Получаем текст из пересланного сообщения
+      const forwardedMessage = callbackQuery.message.reply_to_message;
+      const taskTitle = forwardedMessage.text || forwardedMessage.caption || 'Задача из Telegram';
+      
+      // Используем Telegram ID пользователя
+      const telegramUserId = callbackQuery.from.id;
+      
+      // Создаем данные задачи
       const taskData = {
-        title: firstLine.length > 50 ? firstLine.substring(0, 47) + '...' : firstLine,
-        description: remainingText,
-        user_id: 1,
-        done: false
+        user_id: telegramUserId,
+        title: taskTitle.substring(0, 100), // Ограничиваем длину заголовка
+        description: taskTitle.length > 100 ? taskTitle.substring(100) : '',
+        due_date: new Date().toISOString().split('T')[0], // Сегодняшняя дата как срок по умолчанию
+        priority: 'medium'
       };
       
-      console.log('Отправляем данные в API:', JSON.stringify(taskData));
-      
-      // Отправляем запрос к API для создания новой задачи
       const response = await axios.post(`${apiUrl}/tasks`, taskData);
       
       console.log('Ответ API:', JSON.stringify(response.data));
@@ -488,19 +482,22 @@ bot.on('polling_error', (error) => {
 // Обработчик команды /test для тестирования уведомлений
 bot.onText(/\/test/, (msg) => {
   const chatId = msg.chat.id;
+  const telegramUserId = msg.from.id;
   
-  // Сохраняем chat_id пользователя, если еще не сохранен
-  userChatIds.set(1, chatId);
+  // Сохраняем chat_id пользователя для уведомлений
+  userChatIds.set(telegramUserId, chatId);
+  console.log(`Сохранен chat_id: ${chatId} для пользователя с Telegram ID: ${telegramUserId}`);
   
   // Текущее время для отладки
   const now = new Date();
   const currentTime = now.toLocaleTimeString('ru-RU');
   const currentDate = now.toLocaleDateString('ru-RU');
   
-  // Отправляем тестовое уведомление (удалим Markdown для надежности)
+  // Отправляем тестовое уведомление
   let message = `🔔 Тестовое уведомление\n\n`;
   message += `Текущее время: ${currentTime}\n`;
   message += `Текущая дата: ${currentDate}\n\n`;
+  message += `Ваш Telegram ID: ${telegramUserId}\n`;
   message += `Ваш chat_id: ${chatId} сохранен для получения уведомлений.\n`;
   message += `Количество сохраненных пользователей: ${userChatIds.size}`;
   
@@ -546,134 +543,131 @@ async function checkNotifications() {
   console.log("👉 Зарегистрированные пользователи:", Array.from(userChatIds.entries()));
   
   try {
-    // Получаем все активные задачи
-    console.log("👉 Запрос задач с API:", `${apiUrl}/tasks?user_id=1`);
-    const response = await axios.get(`${apiUrl}/tasks?user_id=1`);
-    const tasks = response.data;
-    console.log(`👉 Получено задач: ${tasks.length}`);
-    
-    // Выводим задачи с уведомлениями для отладки
-    const tasksWithNotifications = tasks.filter(task => 
-      !task.done && task.due_date && task.due_time && task.notification
-    );
-    console.log(`👉 Задачи с настроенными уведомлениями:`, 
-      tasksWithNotifications.map(t => ({
-        id: t.id,
-        title: t.title,
-        due_date: t.due_date,
-        due_time: t.due_time,
-        notification: t.notification
-      }))
-    );
-    
-    // Текущая дата и время
-    const now = new Date();
-    const currentDate = now.toISOString().split('T')[0]; // YYYY-MM-DD
-    const currentHour = now.getHours();
-    const currentMinute = now.getMinutes();
-    console.log(`👉 Текущее время: ${currentDate} ${currentHour}:${currentMinute}`);
-    
-    // Фильтруем задачи, которые нужно напомнить
-    for (const task of tasks) {
-      // Пропускаем выполненные задачи
-      if (task.done) {
-        console.log(`👉 Задача "${task.title}" (${task.id}) пропущена - уже выполнена`);
-        continue;
-      }
-      
-      // Проверяем только задачи с датой и временем
-      if (!task.due_date || !task.due_time || !task.notification) {
-        console.log(`👉 Задача "${task.title}" (${task.id}) пропущена - отсутствует дата, время или уведомление`);
-        continue;
-      }
-      
-      console.log(`👉 Обрабатываем задачу: "${task.title}" (${task.id}), срок: ${task.due_date} ${task.due_time}, уведомление: ${task.notification}`);
-      
-      // Разбираем время задачи
-      const [taskHour, taskMinute] = task.due_time.split(':').map(Number);
-      
-      // Время для отправки уведомления в зависимости от настройки
-      let notificationTime = new Date(`${task.due_date}T${task.due_time}`);
-      console.log(`👉 Исходное время задачи: ${notificationTime.toISOString()}`);
-      
-      switch (task.notification) {
-        case 'За 5 минут':
-          notificationTime.setMinutes(notificationTime.getMinutes() - 5);
-          break;
-        case 'За 10 минут':
-          notificationTime.setMinutes(notificationTime.getMinutes() - 10);
-          break;
-        case 'За 15 минут':
-          notificationTime.setMinutes(notificationTime.getMinutes() - 15);
-          break;
-        case 'За 30 минут':
-          notificationTime.setMinutes(notificationTime.getMinutes() - 30);
-          break;
-        case 'За 1 час':
-          notificationTime.setHours(notificationTime.getHours() - 1);
-          break;
-        case 'За 2 часа':
-          notificationTime.setHours(notificationTime.getHours() - 2);
-          break;
-        case 'За день':
-          notificationTime.setDate(notificationTime.getDate() - 1);
-          break;
-      }
-      
-      console.log(`👉 Расчетное время уведомления: ${notificationTime.toISOString()}`);
-      
-      // Проверяем, наступило ли время для отправки уведомления
-      // Допускаем погрешность в 2 минуты (т.е. проверяем ±2 минуты от расчетного времени)
-      const notificationHour = notificationTime.getHours();
-      const notificationMinute = notificationTime.getMinutes();
-      const notificationDate = notificationTime.toISOString().split('T')[0];
-      
-      console.log(`👉 Сравниваем: Текущее [${currentDate} ${currentHour}:${currentMinute}] vs Уведомление [${notificationDate} ${notificationHour}:${notificationMinute}]`);
-      
-      // Переводим время в минуты для более простого сравнения
-      const currentTotalMinutes = currentHour * 60 + currentMinute;
-      const notificationTotalMinutes = notificationHour * 60 + notificationMinute;
-      const timeDifference = Math.abs(currentTotalMinutes - notificationTotalMinutes);
-      
-      // Проверяем совпадение даты и близость времени (в пределах 2 минут)
-      if (currentDate === notificationDate && timeDifference <= 2) {
-        console.log(`👉 ✅ СОВПАДЕНИЕ! Отправляем уведомление для задачи "${task.title}" (${task.id}). Разница во времени: ${timeDifference} мин.`);
+    // Проверяем каждого пользователя, для которого у нас есть chat_id
+    for (const [userId, chatId] of userChatIds.entries()) {
+      try {
+        console.log(`👉 Проверка задач для пользователя с ID: ${userId}`);
         
-        // Отправляем уведомление пользователю, если знаем его chat_id
-        const userId = task.user_id || 1;
-        const chatId = userChatIds.get(userId);
+        // Получаем задачи для конкретного пользователя
+        const response = await axios.get(`${apiUrl}/tasks?user_id=${userId}`);
+        const tasks = response.data;
+        console.log(`👉 Получено ${tasks.length} задач для пользователя ${userId}`);
         
-        if (chatId) {
-          console.log(`👉 Отправка уведомления пользователю с chat_id: ${chatId}`);
-          
-          // Отправляем сообщение без Markdown для избежания ошибок
-          let message = `🔔 Напоминание о задаче!\n\n`;
-          message += `${task.title}\n`;
-          
-          if (task.description) {
-            message += `${task.description}\n\n`;
+        // Выводим задачи с уведомлениями для отладки
+        const tasksWithNotifications = tasks.filter(task => 
+          !task.done && task.due_date && task.due_time && task.notification
+        );
+        console.log(`👉 Задачи с настроенными уведомлениями для пользователя ${userId}:`, 
+          tasksWithNotifications.map(t => ({
+            id: t.id,
+            title: t.title,
+            due_date: t.due_date,
+            due_time: t.due_time,
+            notification: t.notification
+          }))
+        );
+        
+        // Текущая дата и время
+        const now = new Date();
+        const currentDate = now.toISOString().split('T')[0]; // YYYY-MM-DD
+        const currentHour = now.getHours();
+        const currentMinute = now.getMinutes();
+        console.log(`👉 Текущее время: ${currentDate} ${currentHour}:${currentMinute}`);
+        
+        // Проверяем задачи этого пользователя
+        for (const task of tasks) {
+          // Пропускаем выполненные задачи
+          if (task.done) {
+            continue;
           }
           
-          message += `📅 Срок: ${task.due_date}\n`;
-          message += `⏰ Время: ${task.due_time}\n`;
+          // Проверяем только задачи с датой и временем
+          if (!task.due_date || !task.due_time || !task.notification) {
+            continue;
+          }
           
-          bot.sendMessage(chatId, message, {
-            reply_markup: {
-              inline_keyboard: [
-                [{ text: '✅ Отметить выполненной', callback_data: `complete_task_${task.id}` }],
-                [{ text: '🚀 Открыть в приложении', web_app: { url: `${webAppUrl}/edit-task/${task.id}` } }]
-              ]
+          console.log(`👉 Обрабатываем задачу: "${task.title}" (${task.id}), срок: ${task.due_date} ${task.due_time}, уведомление: ${task.notification}`);
+          
+          // Разбираем время задачи
+          const [taskHour, taskMinute] = task.due_time.split(':').map(Number);
+          
+          // Время для отправки уведомления в зависимости от настройки
+          let notificationTime = new Date(`${task.due_date}T${task.due_time}`);
+          console.log(`👉 Исходное время задачи: ${notificationTime.toISOString()}`);
+          
+          switch (task.notification) {
+            case 'За 5 минут':
+              notificationTime.setMinutes(notificationTime.getMinutes() - 5);
+              break;
+            case 'За 10 минут':
+              notificationTime.setMinutes(notificationTime.getMinutes() - 10);
+              break;
+            case 'За 15 минут':
+              notificationTime.setMinutes(notificationTime.getMinutes() - 15);
+              break;
+            case 'За 30 минут':
+              notificationTime.setMinutes(notificationTime.getMinutes() - 30);
+              break;
+            case 'За 1 час':
+              notificationTime.setHours(notificationTime.getHours() - 1);
+              break;
+            case 'За 2 часа':
+              notificationTime.setHours(notificationTime.getHours() - 2);
+              break;
+            case 'За день':
+              notificationTime.setDate(notificationTime.getDate() - 1);
+              break;
+          }
+          
+          console.log(`👉 Расчетное время уведомления: ${notificationTime.toISOString()}`);
+          
+          // Проверяем, наступило ли время для отправки уведомления
+          // Допускаем погрешность в 2 минуты (т.е. проверяем ±2 минуты от расчетного времени)
+          const notificationHour = notificationTime.getHours();
+          const notificationMinute = notificationTime.getMinutes();
+          const notificationDate = notificationTime.toISOString().split('T')[0];
+          
+          console.log(`👉 Сравниваем: Текущее [${currentDate} ${currentHour}:${currentMinute}] vs Уведомление [${notificationDate} ${notificationHour}:${notificationMinute}]`);
+          
+          // Переводим время в минуты для более простого сравнения
+          const currentTotalMinutes = currentHour * 60 + currentMinute;
+          const notificationTotalMinutes = notificationHour * 60 + notificationMinute;
+          const timeDifference = Math.abs(currentTotalMinutes - notificationTotalMinutes);
+          
+          // Проверяем совпадение даты и близость времени (в пределах 2 минут)
+          if (currentDate === notificationDate && timeDifference <= 2) {
+            console.log(`👉 ✅ СОВПАДЕНИЕ! Отправляем уведомление для задачи "${task.title}" (${task.id}). Разница во времени: ${timeDifference} мин.`);
+            
+            // Отправляем уведомление пользователю, если знаем его chat_id
+            console.log(`👉 Отправка уведомления пользователю с chat_id: ${chatId}`);
+            
+            // Отправляем сообщение без Markdown для избежания ошибок
+            let message = `🔔 Напоминание о задаче!\n\n`;
+            message += `${task.title}\n`;
+            
+            if (task.description) {
+              message += `${task.description}\n\n`;
             }
-          }).then(() => {
-            console.log(`👉 ✅ Уведомление успешно отправлено`);
-          }).catch(err => {
-            console.error(`👉 ❌ Ошибка при отправке уведомления для задачи ${task.id}:`, err.message);
-          });
-        } else {
-          console.log(`👉 ❌ Нет зарегистрированного chat_id для пользователя с ID ${userId}`);
+            
+            message += `📅 Срок: ${task.due_date}\n`;
+            message += `⏰ Время: ${task.due_time}\n`;
+            
+            bot.sendMessage(chatId, message, {
+              reply_markup: {
+                inline_keyboard: [
+                  [{ text: '✅ Отметить выполненной', callback_data: `complete_task_${task.id}` }],
+                  [{ text: '🚀 Открыть в приложении', web_app: { url: `${webAppUrl}/edit-task/${task.id}` } }]
+                ]
+              }
+            }).then(() => {
+              console.log(`👉 ✅ Уведомление успешно отправлено`);
+            }).catch(err => {
+              console.error(`👉 ❌ Ошибка при отправке уведомления для задачи ${task.id}:`, err.message);
+            });
+          }
         }
-      } else {
-        console.log(`👉 ❌ Время не совпадает, уведомление не отправляем`);
+      } catch (userError) {
+        console.error(`❌ Ошибка при проверке задач для пользователя ${userId}:`, userError);
       }
     }
   } catch (error) {
@@ -713,10 +707,10 @@ bot.onText(/\/command/, (msg) => {
 // Обработчик команды /force_notification - для принудительной отправки уведомлений
 bot.onText(/\/force_notification (.+)/, async (msg, match) => {
   const chatId = msg.chat.id;
+  const telegramUserId = msg.from.id;
   const taskId = match[1]; // ID задачи из команды /force_notification
   
-  console.log(`Пользователь ${msg.from.username || msg.from.first_name} (ID: ${msg.from.id}) запросил уведомление для задачи ${taskId}`);
-  console.log(`Chat ID пользователя: ${chatId}`);
+  console.log(`Пользователь ${msg.from.username || msg.from.first_name} (ID: ${telegramUserId}) запросил уведомление для задачи ${taskId}`);
   
   if (!taskId || isNaN(parseInt(taskId))) {
     bot.sendMessage(chatId, 'Пожалуйста, укажите корректный ID задачи: /force_notification ID');
@@ -730,6 +724,13 @@ bot.onText(/\/force_notification (.+)/, async (msg, match) => {
     
     if (!task || !task.id) {
       bot.sendMessage(chatId, `❌ Задача с ID ${taskId} не найдена.`);
+      return;
+    }
+    
+    // Проверяем, принадлежит ли задача этому пользователю
+    if (task.user_id !== telegramUserId) {
+      console.log(`Пользователь ${telegramUserId} пытается получить уведомление для задачи пользователя ${task.user_id}`);
+      bot.sendMessage(chatId, `❌ Эта задача не принадлежит вам.`);
       return;
     }
     
@@ -758,7 +759,7 @@ bot.onText(/\/force_notification (.+)/, async (msg, match) => {
       }
     });
     
-    console.log(`Уведомление для задачи ${taskId} отправлено пользователю ${chatId}`);
+    console.log(`Уведомление для задачи ${taskId} отправлено пользователю ${telegramUserId}`);
     
   } catch (error) {
     console.error('Ошибка при отправке уведомления:', error);

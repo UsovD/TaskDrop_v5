@@ -43,274 +43,93 @@ declare global {
 }
 
 /**
- * Получает данные пользователя из Telegram WebApp и синхронизирует с базой данных
+ * Получает данные пользователя из Telegram WebApp
+ * @returns Данные пользователя с корректным Telegram ID
  */
-export const getUserData = async (): Promise<UserData> => {
+export const getUserData = async (): Promise<{ 
+  id: number; 
+  first_name: string; 
+  last_name?: string; 
+  username?: string; 
+  photo_url?: string;
+  telegram_id: number 
+}> => {
   try {
-    // Добавляем отладочную информацию для проверки текущего окружения
-    console.log('Проверка Telegram объекта:', Boolean(window.Telegram));
-    console.log('Проверка WebApp объекта:', Boolean(window.Telegram?.WebApp));
+    console.log('Начало получения данных пользователя из Telegram WebApp');
     
-    // Проверяем, запущено ли приложение в Telegram
-    const isTelegram = await isTMA('complete');
-    console.log('isTMA результат:', isTelegram);
-    
-    // Получаем данные из Telegram WebApp
-    const telegramWebApp = window.Telegram?.WebApp;
-    
-    if (telegramWebApp && telegramWebApp.initDataUnsafe && telegramWebApp.initDataUnsafe.user) {
-      const telegramUser = telegramWebApp.initDataUnsafe.user;
-      console.log('Получены данные пользователя из Telegram:', telegramUser);
-      
-      // Сохраняем ID напрямую - важно делать это в начале для аварийного восстановления
-      try {
-        localStorage.setItem('user_telegram_id', String(telegramUser.id));
-        localStorage.setItem('user_telegram_data', JSON.stringify(telegramUser));
-      } catch (e) {
-        console.warn('Не удалось сохранить данные пользователя в localStorage:', e);
-      }
-      
-      try {
-        // Проверяем, существует ли пользователь в базе данных
-        const response = await axios.get(`${API_BASE_URL}/users/telegram/${telegramUser.id}`);
-        
-        // Если пользователь найден, возвращаем его данные
-        if (response.status === 200 && !response.data.error) {
-          console.log('Пользователь найден в базе:', response.data);
-          
-          // Проверяем, соответствует ли ID в базе Telegram ID
-          // Если нет, обновляем для правильной синхронизации
-          if (response.data.id !== telegramUser.id) {
-            console.log('ID в базе не соответствует Telegram ID, синхронизируем...');
-            try {
-              const updateResponse = await axios.put(`${API_BASE_URL}/users/${response.data.id}`, {
-                id: telegramUser.id,
-                telegram_id: telegramUser.id
-              });
-              if (updateResponse.status === 200) {
-                console.log('ID пользователя синхронизирован:', updateResponse.data);
-                return updateResponse.data;
-              }
-            } catch (updateError) {
-              console.error('Ошибка при синхронизации ID:', updateError);
-              // При ошибке используем данные напрямую из Telegram
-              console.log('Используем данные пользователя напрямую из Telegram WebApp');
-              return {
-                id: telegramUser.id,
-                first_name: telegramUser.first_name,
-                last_name: telegramUser.last_name,
-                username: telegramUser.username,
-                photo_url: telegramUser.photo_url,
-                telegram_id: telegramUser.id
-              };
-            }
-          }
-          
-          return response.data;
-        }
-      } catch (error) {
-        console.log('Пользователь не найден в базе или ошибка API, используем данные из Telegram напрямую');
-        
-        try {
-          // Создаем нового пользователя с ID = Telegram ID
-          const userData = {
-            id: telegramUser.id,
-            telegram_id: telegramUser.id,
-            first_name: telegramUser.first_name,
-            last_name: telegramUser.last_name,
-            username: telegramUser.username,
-            photo_url: telegramUser.photo_url
-          };
-          
-          const createResponse = await axios.post(`${API_BASE_URL}/users`, userData);
-          
-          if (createResponse.status === 200 || createResponse.status === 201) {
-            console.log('Создан новый пользователь:', createResponse.data);
-            return createResponse.data;
-          }
-        } catch (createError) {
-          console.error('Ошибка при создании пользователя:', createError);
-          // При ошибке создания пользователя в базе всё равно используем данные из Telegram
-          console.log('Используем данные пользователя напрямую из Telegram WebApp');
-          return {
-            id: telegramUser.id,
-            first_name: telegramUser.first_name,
-            last_name: telegramUser.last_name,
-            username: telegramUser.username,
-            photo_url: telegramUser.photo_url,
-            telegram_id: telegramUser.id
-          };
-        }
-      }
-      
-      // Если не удалось синхронизировать с базой, возвращаем локальные данные из Telegram
-      console.log('Используем данные пользователя напрямую из Telegram WebApp');
-      return {
-        id: telegramUser.id, 
-        first_name: telegramUser.first_name,
-        last_name: telegramUser.last_name,
-        username: telegramUser.username,
-        photo_url: telegramUser.photo_url,
-        telegram_id: telegramUser.id
-      };
+    // Проверяем наличие Telegram WebApp
+    if (!window.Telegram?.WebApp?.initDataUnsafe?.user) {
+      console.warn('Telegram WebApp недоступен или данные пользователя отсутствуют');
+      throw new Error('Telegram WebApp user data not available');
     }
     
-    // Если не в Telegram или нет данных пользователя, пытаемся получить ID из других источников
-    console.log('Не удалось получить данные пользователя из Telegram, ищем альтернативные источники');
+    // Получаем данные пользователя из Telegram WebApp
+    const user = window.Telegram.WebApp.initDataUnsafe.user;
+    console.log('Получены данные пользователя из Telegram:', user);
     
-    // Пытаемся получить полные данные из localStorage
-    let cachedTelegramData = null;
+    // Проверяем наличие ID пользователя
+    if (!user.id) {
+      console.error('ID пользователя не найден в данных Telegram WebApp');
+      throw new Error('User ID is missing from Telegram WebApp data');
+    }
+    
+    // Сохраняем ID в localStorage для возможного восстановления в будущем
     try {
-      const cachedData = localStorage.getItem('user_telegram_data');
-      if (cachedData) {
-        cachedTelegramData = JSON.parse(cachedData);
-        console.log('Получены полные данные пользователя из localStorage:', cachedTelegramData);
-        
-        if (cachedTelegramData && cachedTelegramData.id) {
-          // Используем кэшированные данные как резервный вариант
-          console.log('Используем кэшированные данные пользователя из localStorage');
-          
-          // Дополнительно попытаемся обновить данные из API
-          try {
-            const response = await axios.get(`${API_BASE_URL}/users/telegram/${cachedTelegramData.id}`);
-            if (response.status === 200 && !response.data.error) {
-              console.log('Пользователь с кэшированным ID найден в базе:', response.data);
-              return response.data;
-            }
-          } catch (e) {
-            console.warn('Не удалось получить пользователя по кэшированному ID из API:', e);
-          }
-          
-          // Если API недоступен, используем кэшированные данные
-          return {
-            id: cachedTelegramData.id,
-            first_name: cachedTelegramData.first_name,
-            last_name: cachedTelegramData.last_name,
-            username: cachedTelegramData.username,
-            photo_url: cachedTelegramData.photo_url,
-            telegram_id: cachedTelegramData.id
-          };
-        }
-      }
+      localStorage.setItem('user_telegram_id', String(user.id));
+      localStorage.setItem('user_telegram_data', JSON.stringify(user));
+      console.log('Данные пользователя сохранены в localStorage');
     } catch (e) {
-      console.warn('Не удалось получить данные из localStorage:', e);
+      console.warn('Не удалось сохранить данные в localStorage:', e);
     }
     
-    // Пытаемся получить ID из localStorage как запасной вариант
-    let savedTelegramId = null;
-    try {
-      const savedId = localStorage.getItem('user_telegram_id');
-      if (savedId) {
-        savedTelegramId = parseInt(savedId, 10);
-        console.log('Получен ID из localStorage:', savedTelegramId);
-      }
-    } catch (e) {
-      console.warn('Не удалось получить ID из localStorage:', e);
-    }
-    
-    // Если есть сохраненный ID, пытаемся получить пользователя по нему
-    if (savedTelegramId) {
-      try {
-        const response = await axios.get(`${API_BASE_URL}/users/telegram/${savedTelegramId}`);
-        if (response.status === 200 && !response.data.error) {
-          console.log('Пользователь найден в базе по сохраненному ID:', response.data);
-          return response.data;
-        }
-      } catch (e) {
-        console.warn('Не удалось получить пользователя по сохраненному ID:', e);
-      }
-    }
-    
-    // Если всё еще нет данных пользователя, создаем временного пользователя
-    console.error('Невозможно определить пользователя. Создаем временный профиль.');
-    
-    // Генерируем случайный ID для избежания конфликтов
-    const temporaryId = Math.floor(Math.random() * 1000000) + 1000; 
-    
+    // Возвращаем данные пользователя с гарантированным ID
     return {
-      id: temporaryId,
-      first_name: 'Гость',
-      last_name: '',
-      username: 'guest_user',
-      photo_url: 'https://i.pravatar.cc/300?u=guest',
-      telegram_id: temporaryId
+      id: user.id,                // Используем Telegram ID как основной ID
+      first_name: user.first_name,
+      last_name: user.last_name,
+      username: user.username,
+      photo_url: user.photo_url,
+      telegram_id: user.id        // Дублируем ID для совместимости
     };
   } catch (error) {
-    console.error('Error getting user data:', error);
+    console.error('Ошибка при получении данных пользователя из Telegram:', error);
     
-    // Пытаемся получить полные данные из localStorage как последнее средство
-    try {
-      const cachedData = localStorage.getItem('user_telegram_data');
-      if (cachedData) {
-        const telegramData = JSON.parse(cachedData);
-        console.log('В режиме ошибки получены данные пользователя из localStorage:', telegramData);
-        
-        if (telegramData && telegramData.id) {
-          // Используем кэшированные данные в режиме ошибки
-          console.log('Используем кэшированные данные пользователя из localStorage в режиме ошибки');
-          
-          return {
-            id: telegramData.id,
-            first_name: telegramData.first_name,
-            last_name: telegramData.last_name,
-            username: telegramData.username,
-            photo_url: telegramData.photo_url,
-            telegram_id: telegramData.id
-          };
-        }
-      }
-    } catch (cacheError) {
-      console.error('Ошибка при получении кэшированных данных:', cacheError);
-    }
-    
-    // Пытаемся получить ID из localStorage как последнее средство
-    let savedTelegramId = null;
+    // Пытаемся восстановить данные из localStorage
     try {
       const savedId = localStorage.getItem('user_telegram_id');
       if (savedId) {
-        savedTelegramId = parseInt(savedId, 10);
-        console.log('Получен ID из localStorage в режиме ошибки:', savedTelegramId);
+        const parsedId = parseInt(savedId, 10);
+        console.log('Восстановлен ID пользователя из localStorage:', parsedId);
         
-        // Если есть сохраненный ID, пытаемся получить данные пользователя из API
-        try {
-          const response = await axios.get(`${API_BASE_URL}/users/telegram/${savedTelegramId}`);
-          if (response.status === 200 && !response.data.error) {
-            console.log('Пользователь найден в базе по сохраненному ID в режиме ошибки:', response.data);
-            return response.data;
-          }
-        } catch (apiError) {
-          console.warn('Не удалось получить данные из API по сохраненному ID:', apiError);
+        // Проверяем, есть ли полные данные пользователя
+        const savedData = localStorage.getItem('user_telegram_data');
+        if (savedData) {
+          const userData = JSON.parse(savedData);
+          console.log('Восстановлены полные данные пользователя из localStorage');
+          
+          return {
+            id: parsedId,
+            first_name: userData.first_name || 'Пользователь',
+            last_name: userData.last_name,
+            username: userData.username,
+            photo_url: userData.photo_url,
+            telegram_id: parsedId
+          };
         }
         
-        // Если не удалось получить данные из API, создаем временного пользователя
-        // с сохраненным ID и номером ошибки для отслеживания
-        const timestamp = new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 14);
+        // Возвращаем минимальные данные, если нет полных
         return {
-          id: savedTelegramId,
-          first_name: 'ID: ' + savedTelegramId,
-          last_name: '',
-          username: 'error_' + timestamp,
-          photo_url: 'https://i.pravatar.cc/300?u=' + timestamp,
-          telegram_id: savedTelegramId
+          id: parsedId,
+          first_name: 'Пользователь',
+          telegram_id: parsedId
         };
       }
     } catch (e) {
-      console.warn('Не удалось получить ID из localStorage в режиме ошибки:', e);
+      console.error('Ошибка при восстановлении данных из localStorage:', e);
     }
     
-    // Если всё остальное не сработало, используем случайный ID
-    const emergencyId = Math.floor(Math.random() * 1000000) + 2000;
-    const timestamp = new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 14);
-    
-    // В случае критической ошибки возвращаем данные с временной меткой для отслеживания
-    return {
-      id: emergencyId,
-      first_name: 'Ошибка',
-      last_name: timestamp,
-      username: 'error_' + timestamp,
-      photo_url: 'https://i.pravatar.cc/300?u=error_' + timestamp,
-      telegram_id: emergencyId
-    };
+    // Если не удалось восстановить данные, выбрасываем ошибку
+    throw new Error('Не удалось получить или восстановить данные пользователя');
   }
 };
 

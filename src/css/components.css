@@ -279,26 +279,20 @@ body {
 .user-info {
   display: flex;
   align-items: center;
-  padding: 0;
-  margin: 0;
-  background-color: transparent;
-  border-radius: 0;
-  border-bottom: none;
+  padding: var(--spacing-sm);
+  cursor: pointer;
+  transition: background-color 0.2s ease;
 }
 
 .user-avatar {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   overflow: hidden;
-  margin-right: 12px;
-  background-color: rgba(255, 255, 255, 0.1);
+  margin-right: var(--spacing-sm);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
-  font-weight: 500;
-  font-size: 13px;
 }
 
 .user-avatar img {
@@ -310,57 +304,70 @@ body {
 .default-avatar {
   width: 100%;
   height: 100%;
+  background-color: var(--accent-color);
+  color: white;
+  font-weight: bold;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
-  font-weight: 500;
-  font-size: 13px;
-  background-color: rgba(255, 255, 255, 0.1);
+  font-size: 18px;
+}
+
+.user-details {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
 }
 
 .user-name {
-  font-size: 15px;
-  font-weight: 400;
-  color: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-username {
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.debug-info {
+  position: absolute;
+  top: 60px;
+  right: 10px;
+  background-color: rgba(0, 0, 0, 0.8);
+  border-radius: 8px;
+  padding: 8px;
+  z-index: 1000;
+  border: 1px solid var(--accent-color);
+  max-width: 90%;
 }
 
 .user-info-skeleton {
-  height: 32px;
-  width: 100%;
-  background-color: transparent;
-  padding: 12px 0;
-  margin-bottom: 16px;
-  position: relative;
-  overflow: hidden;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.user-info-skeleton::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  transform: translateX(-100%);
-  background-image: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0) 0,
-    rgba(255, 255, 255, 0.1) 20%,
-    rgba(255, 255, 255, 0.2) 60%,
-    rgba(255, 255, 255, 0)
-  );
-  animation: shimmer 2s infinite;
-}
-
-@keyframes shimmer {
-  100% {
-    transform: translateX(100%);
-  }
+  height: 40px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  margin: var(--spacing-sm);
+  animation: pulse 1.5s infinite;
 }
 
 .user-info-error {
-  background-color: transparent;
-  border: none;
+  opacity: 0.7;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 0.3;
+  }
+  100% {
+    opacity: 0.6;
+  }
 } 

@@ -55,17 +55,33 @@ export const getUserData = async (): Promise<{
   telegram_id: number 
 }> => {
   try {
+    console.group('🔍 Получение данных пользователя');
     console.log('Начало получения данных пользователя из Telegram WebApp');
+    
+    // Выводим информацию о среде выполнения
+    console.log('UserAgent:', navigator.userAgent);
+    console.log('WebApp доступен:', Boolean(window.Telegram?.WebApp));
+    console.log('InitDataUnsafe доступен:', Boolean(window.Telegram?.WebApp?.initDataUnsafe));
     
     // Проверяем наличие Telegram WebApp
     if (!window.Telegram?.WebApp?.initDataUnsafe?.user) {
       console.warn('Telegram WebApp недоступен или данные пользователя отсутствуют');
+      
+      // Проверяем localStorage
+      const savedId = localStorage.getItem('user_telegram_id');
+      console.log('Сохраненный ID в localStorage:', savedId);
+      
       throw new Error('Telegram WebApp user data not available');
     }
     
     // Получаем данные пользователя из Telegram WebApp
     const user = window.Telegram.WebApp.initDataUnsafe.user;
-    console.log('Получены данные пользователя из Telegram:', user);
+    console.log('Получены данные пользователя из Telegram:');
+    console.log('- id:', user.id);
+    console.log('- first_name:', user.first_name);
+    console.log('- last_name:', user.last_name);
+    console.log('- username:', user.username);
+    console.log('- photo_url:', user.photo_url);
     
     // Проверяем наличие ID пользователя
     if (!user.id) {
@@ -83,7 +99,7 @@ export const getUserData = async (): Promise<{
     }
     
     // Возвращаем данные пользователя с гарантированным ID
-    return {
+    const userData = {
       id: user.id,                // Используем Telegram ID как основной ID
       first_name: user.first_name,
       last_name: user.last_name,
@@ -91,6 +107,11 @@ export const getUserData = async (): Promise<{
       photo_url: user.photo_url,
       telegram_id: user.id        // Дублируем ID для совместимости
     };
+    
+    console.log('Итоговый объект данных пользователя:', userData);
+    console.groupEnd();
+    
+    return userData;
   } catch (error) {
     console.error('Ошибка при получении данных пользователя из Telegram:', error);
     
@@ -105,9 +126,9 @@ export const getUserData = async (): Promise<{
         const savedData = localStorage.getItem('user_telegram_data');
         if (savedData) {
           const userData = JSON.parse(savedData);
-          console.log('Восстановлены полные данные пользователя из localStorage');
+          console.log('Восстановлены полные данные пользователя из localStorage:', userData);
           
-          return {
+          const restoredUserData = {
             id: parsedId,
             first_name: userData.first_name || 'Пользователь',
             last_name: userData.last_name,
@@ -115,19 +136,30 @@ export const getUserData = async (): Promise<{
             photo_url: userData.photo_url,
             telegram_id: parsedId
           };
+          
+          console.log('Восстановленный объект данных пользователя:', restoredUserData);
+          console.groupEnd();
+          
+          return restoredUserData;
         }
         
         // Возвращаем минимальные данные, если нет полных
-        return {
+        const minimalUserData = {
           id: parsedId,
           first_name: 'Пользователь',
           telegram_id: parsedId
         };
+        
+        console.log('Минимальный восстановленный объект данных пользователя:', minimalUserData);
+        console.groupEnd();
+        
+        return minimalUserData;
       }
     } catch (e) {
       console.error('Ошибка при восстановлении данных из localStorage:', e);
     }
     
+    console.groupEnd();
     // Если не удалось восстановить данные, выбрасываем ошибку
     throw new Error('Не удалось получить или восстановить данные пользователя');
   }

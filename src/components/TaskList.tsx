@@ -3,6 +3,7 @@ import { Task, TaskCategory } from '../types/Task';
 import { CategorySelector } from './CategorySelector';
 import { CategoryPage } from './CategoryPage';
 import { UserInfo } from './UserInfo';
+import { AppVersion } from './AppVersion';
 
 interface TaskListProps {
   tasks: Task[];
@@ -130,6 +131,8 @@ export const TaskList: React.FC<TaskListProps> = ({
             />
           </div>
         )}
+        
+        <AppVersion className="app-version-main" showDetails={true} />
       </div>
     </div>
   );

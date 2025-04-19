@@ -4,6 +4,18 @@ import sqlite3
 import json
 from datetime import datetime
 import os
+import logging
+
+# Настройка логирования
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler('task_logs.log')
+    ]
+)
+logger = logging.getLogger('TaskDrop-API')
 
 app = Flask(__name__)
 # Обновляем настройки CORS для разрешения всех источников запросов
@@ -146,6 +158,11 @@ def add_task():
     data = request.json
     user_id = data.get("user_id")
     
+    # Логируем полученные данные
+    logger.info(f"Создание новой задачи. Полученные данные: {json.dumps(data, ensure_ascii=False)}")
+    logger.info(f"IP адрес отправителя: {request.remote_addr}")
+    logger.info(f"Заголовки запроса: {dict(request.headers)}")
+    
     # Извлекаем значения полей или устанавливаем None, если поле отсутствует
     title = data.get("title", "")
     description = data.get("description", "")
@@ -158,6 +175,13 @@ def add_task():
     notes = data.get("notes")
     location = data.get("location")
     repeat = data.get("repeat")
+    
+    # Логируем обработанные данные
+    logger.info(f"Обработанные данные для добавления в БД:")
+    logger.info(f"user_id: {user_id}, title: {title}, description: {description}")
+    logger.info(f"due_date: {due_date}, due_time: {due_time}, notification: {notification}")
+    logger.info(f"priority: {priority}, tags: {tags}, attachments: {attachments}")
+    logger.info(f"notes: {notes}, location: {location}, repeat: {repeat}")
     
     with sqlite3.connect(DB) as conn:
         c = conn.cursor()
@@ -175,6 +199,7 @@ def add_task():
         ))
         conn.commit()
         task_id = c.lastrowid
+        logger.info(f"Задача успешно создана с ID: {task_id}")
         
         # Получаем созданную задачу
         conn.row_factory = dict_factory
@@ -192,6 +217,8 @@ def add_task():
             task['tags'] = json.loads(task['tags'])
         if task['attachments']:
             task['attachments'] = json.loads(task['attachments'])
+        
+        logger.info(f"Возвращаемая задача: {json.dumps(task, ensure_ascii=False)}")
     
     return jsonify(task)
 

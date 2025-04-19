@@ -153,29 +153,52 @@ class ApiClient {
   // Создание новой задачи с привязкой к Telegram ID пользователя
   async createTask(task: Omit<ApiTask, 'id' | 'created_at'>): Promise<ApiTask> {
     const userId = await this.getUserId();
-    console.log('Создание задачи для пользователя с Telegram ID:', userId);
+    
+    // Расширенное логирование
+    console.group('Создание новой задачи');
+    console.log('Данные пользователя:');
+    console.log('- user_id:', userId);
+    
+    console.log('Данные задачи:');
+    console.log('- title:', task.title);
+    console.log('- description:', task.description);
+    console.log('- due_date:', task.due_date);
+    console.log('- due_time:', task.due_time);
+    console.log('- notification:', task.notification);
+    console.log('- priority:', task.priority);
+    console.log('- tags:', task.tags);
+    console.log('- attachments:', task.attachments);
+    console.log('- notes:', task.notes);
+    console.log('- location:', task.location);
+    console.log('- repeat:', task.repeat);
+    console.log('- done:', task.done || false);
+    
+    const requestData = {
+      user_id: userId,
+      title: task.title,
+      description: task.description,
+      due_date: task.due_date,
+      due_time: task.due_time,
+      notification: task.notification,
+      priority: task.priority,
+      tags: task.tags,
+      attachments: task.attachments,
+      notes: task.notes,
+      location: task.location,
+      repeat: task.repeat,
+      completed: task.done || false
+    };
+    
+    console.log('Полный объект запроса:', JSON.stringify(requestData, null, 2));
+    console.groupEnd();
     
     const response = await this.request<{ id: string; success: boolean }>('/tasks', {
       method: 'POST',
-      body: JSON.stringify({
-        user_id: userId,
-        title: task.title,
-        description: task.description,
-        due_date: task.due_date,
-        due_time: task.due_time,
-        notification: task.notification,
-        priority: task.priority,
-        tags: task.tags,
-        attachments: task.attachments,
-        notes: task.notes,
-        location: task.location,
-        repeat: task.repeat,
-        completed: task.done || false
-      }),
+      body: JSON.stringify(requestData),
     });
 
     // Возвращаем объект задачи, объединяя входные данные и полученный ID
-    return {
+    const createdTask = {
       id: response.id,
       title: task.title,
       description: task.description,
@@ -192,6 +215,10 @@ class ApiClient {
       created_at: new Date().toISOString(),
       user_id: userId
     };
+    
+    console.log('Созданная задача:', createdTask);
+    
+    return createdTask;
   }
 
   // Обновление задачи

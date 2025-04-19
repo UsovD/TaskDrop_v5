@@ -1,5 +1,6 @@
 import { isTMA } from '@telegram-apps/sdk-react';
 import axios from 'axios';
+import CryptoJS from 'crypto-js';
 
 interface UserData {
   id: number;
@@ -382,6 +383,164 @@ export const getTelegramDebugInfo = (): {
       webAppAvailable: false,
       userId: null,
       rawInitData: null
+    };
+  }
+};
+
+/**
+ * Валидирует initData, полученные от Telegram WebApp
+ * @param initData - строка initData от Telegram WebApp
+ * @param botToken - токен бота для проверки (должен быть доступен только на сервере)
+ * @returns результат проверки и причина ошибки, если есть
+ */
+export const validateTelegramWebAppData = (initData: string, botToken?: string): { valid: boolean, error?: string } => {
+  try {
+    console.log('Проверка initData:', initData);
+    
+    if (!initData) {
+      return { valid: false, error: 'initData is empty' };
+    }
+    
+    // Разбираем строку initData в объект
+    const urlParams = new URLSearchParams(initData);
+    const hash = urlParams.get('hash');
+    
+    if (!hash) {
+      return { valid: false, error: 'No hash in initData' };
+    }
+    
+    // Создаем строку для проверки, сортируя параметры по ключу
+    const dataCheckString = Array.from(urlParams.entries())
+      .filter(([key]) => key !== 'hash')
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, value]) => `${key}=${value}`)
+      .join('\n');
+    
+    console.log('Data check string:', dataCheckString);
+    
+    // Без токена бота не можем проверить подпись, но можем проверить структуру
+    if (!botToken) {
+      // Проверяем наличие user в данных
+      const user = urlParams.get('user');
+      if (!user) {
+        return { valid: false, error: 'No user data in initData' };
+      }
+      
+      try {
+        const userData = JSON.parse(user);
+        if (!userData.id) {
+          return { valid: false, error: 'No user ID in user data' };
+        }
+        return { valid: true };
+      } catch (e) {
+        return { valid: false, error: 'Failed to parse user data' };
+      }
+    }
+    
+    // Вычисляем HMAC-SHA-256 хеш с ключом, полученным из SHA-256 хеша токена бота
+    const secretKey = CryptoJS.SHA256(botToken);
+    const calculatedHash = CryptoJS.HmacSHA256(dataCheckString, secretKey).toString(CryptoJS.enc.Hex);
+    
+    if (calculatedHash !== hash) {
+      console.error('Hash validation failed', { 
+        calculated: calculatedHash, 
+        received: hash 
+      });
+      return { valid: false, error: 'HMAC validation failed' };
+    }
+    
+    // Проверяем, что auth_date не старше 24 часов
+    const authDate = urlParams.get('auth_date');
+    if (authDate) {
+      const authTimestamp = parseInt(authDate, 10);
+      const currentTimestamp = Math.floor(Date.now() / 1000);
+      const maxAge = 86400; // 24 часа в секундах
+      
+      if (currentTimestamp - authTimestamp > maxAge) {
+        return { valid: false, error: 'Auth data is expired' };
+      }
+    }
+    
+    return { valid: true };
+  } catch (error) {
+    console.error('Error validating Telegram Web App data:', error);
+    return { valid: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+};
+
+/**
+ * Отладочная функция для получения и проверки initData
+ */
+export const debugTelegramInitData = (): { 
+  initDataStr: string | null,
+  validationResult: { valid: boolean, error?: string } | null,
+  parsedData: Record<string, any> | null,
+  userDataPresent: boolean,
+  webAppAvailable: boolean
+} => {
+  try {
+    const telegramWebApp = window.Telegram?.WebApp;
+    const webAppAvailable = Boolean(telegramWebApp);
+    
+    if (!webAppAvailable) {
+      return {
+        initDataStr: null,
+        validationResult: null,
+        parsedData: null,
+        userDataPresent: false,
+        webAppAvailable: false
+      };
+    }
+    
+    const initDataStr = telegramWebApp?.initData || '';
+    console.log('DEBUG: initData строка:', initDataStr);
+    
+    // Проверяем структуру данных
+    const validationResult = validateTelegramWebAppData(initDataStr);
+    
+    // Пытаемся разобрать данные
+    let parsedData: Record<string, any> | null = null;
+    let userDataPresent = false;
+    
+    if (initDataStr) {
+      try {
+        const urlParams = new URLSearchParams(initDataStr);
+        
+        // Создаем объект из всех параметров для отладки
+        parsedData = {};
+        for (const [key, value] of urlParams.entries()) {
+          if (key === 'user') {
+            try {
+              const userData = JSON.parse(value);
+              parsedData[key] = userData;
+              userDataPresent = Boolean(userData?.id);
+            } catch (e) {
+              parsedData[key] = { error: 'Failed to parse user JSON', value };
+            }
+          } else {
+            parsedData[key] = value;
+          }
+        }
+      } catch (e) {
+        console.error('Ошибка при разборе initData:', e);
+      }
+    }
+    
+    return {
+      initDataStr,
+      validationResult,
+      parsedData,
+      userDataPresent,
+      webAppAvailable
+    };
+  } catch (error) {
+    console.error('Ошибка в функции отладки initData:', error);
+    return {
+      initDataStr: null,
+      validationResult: null,
+      parsedData: null,
+      userDataPresent: false,
+      webAppAvailable: false
     };
   }
 }; 

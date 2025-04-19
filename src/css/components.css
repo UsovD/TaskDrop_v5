@@ -198,26 +198,22 @@ body {
   border: none;
   border-radius: var(--border-radius);
   color: white;
-  cursor: pointer;
-  transition: all 0.2s ease;
 }
 
 .quick-add-submit:hover {
-  transform: scale(1.05);
+  background-color: #0A74DF;
 }
 
 .quick-add-submit:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.3);
 }
 
-/* Page Transition Animations */
 .page-transition {
-  animation: fadeIn 0.15s ease-out;
+  transition: opacity 0.25s ease-in-out;
   min-height: 100vh;
-  background-color: #000000;
-  opacity: 1;
-  transition: opacity 0.15s ease-out;
+  display: flex;
+  flex-direction: column;
 }
 
 .page-transition.opacity-0 {
@@ -231,13 +227,14 @@ body {
 @keyframes fadeIn {
   from {
     opacity: 0;
+    transform: translateY(10px);
   }
   to {
     opacity: 1;
+    transform: translateY(0);
   }
 }
 
-/* Optimized animations for smoother transitions */
 @keyframes appFadeIn {
   from {
     opacity: 0;
@@ -247,52 +244,56 @@ body {
   }
 }
 
-/* Медиа-запросы */
 @media (min-width: 768px) {
   .add-task-button {
-    position: static;
-    margin: var(--spacing-md) 0;
-    width: 100%;
-    box-shadow: none;
+    width: auto;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: var(--spacing-lg);
+    padding-right: var(--spacing-lg);
   }
   
   .add-task-button:hover {
-    transform: translateY(-1px);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   }
 }
 
-/* Стили для заголовка и информации о пользователе */
 .header-container {
+  padding: var(--spacing-md);
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-bottom: 16px;
+  flex-direction: column;
+  gap: var(--spacing-sm);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .header-content {
   display: flex;
-  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
 }
 
-/* Стили для компонента UserInfo */
 .user-info {
   display: flex;
   align-items: center;
   padding: var(--spacing-sm);
+  border-radius: var(--border-radius);
+  position: relative;
   cursor: pointer;
   transition: background-color 0.2s ease;
 }
 
+.user-info:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
 .user-avatar {
-  width: 40px;
-  height: 40px;
+  width: 46px;
+  height: 46px;
   border-radius: 50%;
   overflow: hidden;
-  margin-right: var(--spacing-sm);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .user-avatar img {
@@ -304,32 +305,34 @@ body {
 .default-avatar {
   width: 100%;
   height: 100%;
-  background-color: var(--accent-color);
-  color: white;
-  font-weight: bold;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
+  background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+  color: white;
+  font-size: 20px;
+  font-weight: bold;
 }
 
 .user-details {
+  margin-left: 12px;
   display: flex;
   flex-direction: column;
-  flex: 1;
-  min-width: 0;
+  justify-content: center;
 }
 
 .user-name {
-  font-weight: 500;
-  font-size: 14px;
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--text-primary);
+  margin-bottom: 2px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .user-username {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--text-secondary);
   white-space: nowrap;
   overflow: hidden;
@@ -338,36 +341,41 @@ body {
 
 .debug-info {
   position: absolute;
-  top: 60px;
-  right: 10px;
-  background-color: rgba(0, 0, 0, 0.8);
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background: rgba(28, 28, 30, 0.95);
+  backdrop-filter: blur(5px);
   border-radius: 8px;
-  padding: 8px;
-  z-index: 1000;
-  border: 1px solid var(--accent-color);
-  max-width: 90%;
+  padding: 12px;
+  margin-top: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  font-size: 12px;
+  color: #eee;
+  line-height: 1.4;
+  max-height: 80vh;
+  overflow-y: auto;
 }
 
 .user-info-skeleton {
-  height: 40px;
-  background-color: rgba(255, 255, 255, 0.1);
-  border-radius: 20px;
-  margin: var(--spacing-sm);
+  width: 100%;
+  height: 48px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.05) 25%, rgba(255, 255, 255, 0.1) 50%, rgba(255, 255, 255, 0.05) 75%);
+  background-size: 200% 100%;
   animation: pulse 1.5s infinite;
+  border-radius: var(--border-radius);
 }
 
 .user-info-error {
-  opacity: 0.7;
+  opacity: 0.5;
 }
 
 @keyframes pulse {
   0% {
-    opacity: 0.6;
-  }
-  50% {
-    opacity: 0.3;
+    background-position: 0% 0;
   }
   100% {
-    opacity: 0.6;
+    background-position: -200% 0;
   }
 } 

@@ -80,11 +80,26 @@ export const getUserData = async (): Promise<UserData> => {
               });
               if (updateResponse.status === 200) {
                 console.log('ID пользователя синхронизирован:', updateResponse.data);
+                
+                // Сохраняем ID в localStorage для будущих сессий
+                try {
+                  localStorage.setItem('user_telegram_id', String(telegramUser.id));
+                } catch (e) {
+                  console.warn('Не удалось сохранить ID в localStorage:', e);
+                }
+                
                 return updateResponse.data;
               }
             } catch (updateError) {
               console.error('Ошибка при синхронизации ID:', updateError);
             }
+          }
+          
+          // Сохраняем ID в localStorage для будущих сессий
+          try {
+            localStorage.setItem('user_telegram_id', String(telegramUser.id));
+          } catch (e) {
+            console.warn('Не удалось сохранить ID в localStorage:', e);
           }
           
           return response.data;
@@ -107,6 +122,14 @@ export const getUserData = async (): Promise<UserData> => {
           
           if (createResponse.status === 200 || createResponse.status === 201) {
             console.log('Создан новый пользователь:', createResponse.data);
+            
+            // Сохраняем ID в localStorage для будущих сессий
+            try {
+              localStorage.setItem('user_telegram_id', String(telegramUser.id));
+            } catch (e) {
+              console.warn('Не удалось сохранить ID в localStorage:', e);
+            }
+            
             return createResponse.data;
           }
         } catch (createError) {
@@ -115,6 +138,13 @@ export const getUserData = async (): Promise<UserData> => {
       }
       
       // Если не удалось синхронизировать с базой, возвращаем локальные данные
+      // Сохраняем ID в localStorage для будущих сессий
+      try {
+        localStorage.setItem('user_telegram_id', String(telegramUser.id));
+      } catch (e) {
+        console.warn('Не удалось сохранить ID в localStorage:', e);
+      }
+      
       return {
         id: telegramUser.id, // Используем telegram_id как id
         first_name: telegramUser.first_name,
@@ -125,46 +155,83 @@ export const getUserData = async (): Promise<UserData> => {
       };
     }
     
-    // Если не в Telegram или нет данных пользователя, возвращаем данные Denis Usov
-    console.log('Используем данные Denis Usov');
+    // Если не в Telegram или нет данных пользователя, пытаемся получить ID из других источников
+    console.log('Не удалось получить данные пользователя из Telegram, ищем альтернативные источники');
     
+    // Пытаемся получить ID из localStorage
+    let savedTelegramId = null;
     try {
-      // Пытаемся получить пользователя по имени из базы
-      const defaultUserResponse = await axios.get(`${API_BASE_URL}/users`);
-      
-      if (defaultUserResponse.status === 200 && defaultUserResponse.data.length > 0) {
-        // Ищем пользователя Denis Usov
-        const denisUser = defaultUserResponse.data.find(
-          (user: any) => user.first_name === 'Denis' && user.last_name === 'Usov'
-        );
-        
-        if (denisUser) {
-          console.log('Найден пользователь Denis Usov:', denisUser);
-          return denisUser;
-        }
+      const savedId = localStorage.getItem('user_telegram_id');
+      if (savedId) {
+        savedTelegramId = parseInt(savedId, 10);
+        console.log('Получен ID из localStorage:', savedTelegramId);
       }
-    } catch (error) {
-      console.error('Ошибка при получении пользователя из базы:', error);
+    } catch (e) {
+      console.warn('Не удалось получить ID из localStorage:', e);
     }
     
-    // Если не удалось получить пользователя из базы, возвращаем локальные данные
+    // Если есть сохраненный ID, пытаемся получить пользователя по нему
+    if (savedTelegramId) {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/users/telegram/${savedTelegramId}`);
+        if (response.status === 200 && !response.data.error) {
+          console.log('Пользователь найден в базе по сохраненному ID:', response.data);
+          return response.data;
+        }
+      } catch (e) {
+        console.warn('Не удалось получить пользователя по сохраненному ID:', e);
+      }
+    }
+    
+    // Если всё еще нет данных пользователя, создаем временного пользователя
+    console.error('Невозможно определить пользователя. Создаем временный профиль.');
+    
+    // Генерируем случайный ID для избежания конфликтов
+    const temporaryId = Math.floor(Math.random() * 1000000) + 1000; 
+    
     return {
-      id: 1,
-      first_name: 'Denis',
-      last_name: 'Usov',
-      username: 'denisusov',
-      photo_url: 'https://i.pravatar.cc/300?u=denisusov'
+      id: temporaryId,
+      first_name: 'Гость',
+      last_name: '',
+      username: 'guest_user',
+      photo_url: 'https://i.pravatar.cc/300?u=guest',
+      telegram_id: temporaryId
     };
   } catch (error) {
     console.error('Error getting user data:', error);
     
-    // В случае ошибки возвращаем данные по умолчанию
+    // Пытаемся получить ID из localStorage как последнее средство
+    let savedTelegramId = null;
+    try {
+      const savedId = localStorage.getItem('user_telegram_id');
+      if (savedId) {
+        savedTelegramId = parseInt(savedId, 10);
+        console.log('Получен ID из localStorage в режиме ошибки:', savedTelegramId);
+        
+        return {
+          id: savedTelegramId,
+          first_name: 'Пользователь',
+          last_name: '',
+          username: 'recovered_user',
+          photo_url: 'https://i.pravatar.cc/300?u=recovered',
+          telegram_id: savedTelegramId
+        };
+      }
+    } catch (e) {
+      console.warn('Не удалось получить ID из localStorage в режиме ошибки:', e);
+    }
+    
+    // Если всё остальное не сработало, используем случайный ID
+    const emergencyId = Math.floor(Math.random() * 1000000) + 2000;
+    
+    // В случае критической ошибки возвращаем данные по умолчанию со случайным ID
     return {
-      id: 1,
-      first_name: 'Denis',
-      last_name: 'Usov',
-      username: 'denisusov',
-      photo_url: 'https://i.pravatar.cc/300?u=denisusov'
+      id: emergencyId,
+      first_name: 'Аварийный',
+      last_name: 'Режим',
+      username: 'emergency_user',
+      photo_url: 'https://i.pravatar.cc/300?u=emergency',
+      telegram_id: emergencyId
     };
   }
 };

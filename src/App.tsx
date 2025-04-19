@@ -64,7 +64,9 @@ const MainPage: React.FC = () => {
 
   const loadTasks = async () => {
     try {
-      const apiTasks = await apiClient.getTasks();
+      setIsLoading(true);
+      // Используем новый метод для загрузки всех задач пользователя, включая задачи с ID=1
+      const apiTasks = await apiClient.getAllUserTasks();
       setTasks(apiTasks.map(mapApiTaskToTask));
       setError(null);
     } catch (err) {

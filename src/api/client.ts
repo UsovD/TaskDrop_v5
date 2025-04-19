@@ -33,12 +33,38 @@ class ApiClient {
       const userData = await getUserData();
       this.userId = userData.id;
       console.log('Получен ID пользователя:', this.userId);
+      
+      // Сохраняем ID в localStorage для резервного использования
+      try {
+        localStorage.setItem('user_telegram_id', String(this.userId));
+      } catch (e) {
+        console.warn('Не удалось сохранить ID в localStorage:', e);
+      }
+      
       return this.userId;
     } catch (error) {
       console.error('Ошибка при получении ID пользователя:', error);
-      // В случае ошибки используем временный ID
-      this.userId = 1;
-      return this.userId;
+      
+      // Пытаемся восстановить ID из localStorage
+      try {
+        const savedId = localStorage.getItem('user_telegram_id');
+        if (savedId) {
+          const parsedId = parseInt(savedId, 10);
+          if (!isNaN(parsedId) && parsedId > 0) {
+            console.log('Восстановлен ID пользователя из localStorage:', parsedId);
+            this.userId = parsedId;
+            return parsedId;
+          }
+        }
+      } catch (e) {
+        console.warn('Не удалось получить ID из localStorage:', e);
+      }
+      
+      // Если всё остальное не сработало, генерируем случайный ID
+      const randomId = Math.floor(Math.random() * 1000000) + 3000;
+      console.warn('Сгенерирован случайный ID пользователя:', randomId);
+      this.userId = randomId;
+      return randomId;
     }
   }
 
@@ -81,6 +107,33 @@ class ApiClient {
   async getTasks(): Promise<ApiTask[]> {
     const userId = await this.getUserId();
     return this.request<ApiTask[]>(`/tasks?user_id=${userId}`);
+  }
+
+  // Получение всех задач пользователя, включая задачи с ID=1
+  async getAllUserTasks(): Promise<ApiTask[]> {
+    try {
+      const userId = await this.getUserId();
+      // Запрашиваем задачи по Telegram ID
+      const tasks = await this.request<ApiTask[]>(`/tasks?user_id=${userId}`);
+      
+      // Если ID пользователя не равен 1, запрашиваем также задачи с ID=1
+      if (userId !== 1) {
+        try {
+          const legacyTasks = await this.request<ApiTask[]>(`/tasks?user_id=1`);
+          if (legacyTasks && legacyTasks.length > 0) {
+            console.log(`Найдены устаревшие задачи с user_id=1:`, legacyTasks);
+            return [...tasks, ...legacyTasks];
+          }
+        } catch (e) {
+          console.warn("Не удалось загрузить устаревшие задачи:", e);
+        }
+      }
+      
+      return tasks;
+    } catch (error) {
+      console.error("Ошибка при получении задач:", error);
+      throw error;
+    }
   }
 
   // Создание новой задачи

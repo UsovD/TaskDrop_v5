@@ -178,8 +178,6 @@ const MainPage: React.FC = () => {
         isAddingTask={isAddingTask}
         isLoading={isLoading}
       />
-      
-      <AppVersion className="app-version-main" showDetails={true} />
     </div>
   );
 };

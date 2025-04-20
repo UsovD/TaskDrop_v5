@@ -5,7 +5,7 @@ import mkcert from 'vite-plugin-mkcert';
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  base: '/TaskDrop_v5/',
+  base: './',
   css: {
     preprocessorOptions: {
       scss: {
@@ -23,15 +23,25 @@ export default defineConfig({
   ],
   build: {
     target: 'esnext',
-    sourcemap: true
+    sourcemap: true,
+    rollupOptions: {
+      output: {
+        manualChunks: undefined,
+      },
+    },
   },
   publicDir: './public',
   server: {
     host: true,
-    port: 5178,
-    strictPort: true,
+    port: 5000,
+    strictPort: false,
     hmr: {
       overlay: true
+    },
+    middlewareMode: false,
+    fs: {
+      strict: false,
+      allow: ['..']
     }
   },
 }); 

@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "homepage": "https://telegram-mini-apps.github.io/reactjs-template",
+  "homepage": "https://usovd.github.io/TaskDrop_v5/",
   "engines": {
     "node": ">=18.x"
   },
@@ -12,7 +12,7 @@
     "dev": "vite",
     "dev:https": "cross-env HTTPS=true vite",
     "build": "vite build",
-    "vercel-build": "node_modules/.bin/vite build",
+    "vercel-build": "node node_modules/vite/bin/vite.js build",
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "lint:fix": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0 --fix",
     "preview": "vite preview",
@@ -56,6 +56,7 @@
     "eslint": "^9.23.0",
     "eslint-plugin-react": "^7.37.4",
     "eslint-plugin-react-hooks": "^5.2.0",
+    "express": "5.1.0",
     "gh-pages": "^6.1.1",
     "globals": "^15.2.0",
     "postcss": "^8.4.35",

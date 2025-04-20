@@ -5,7 +5,7 @@ import mkcert from 'vite-plugin-mkcert';
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  base: '/',
+  base: '/TaskDrop_v5/',
   css: {
     preprocessorOptions: {
       scss: {

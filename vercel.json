@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "npm install && npm run build",
+  "buildCommand": "npm run build",
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "outputDirectory": "dist",
@@ -65,5 +65,6 @@
         }
       ]
     }
-  ]
+  ],
+  "_comment": "Forced rebuild on Vercel with updated configuration"
 } 

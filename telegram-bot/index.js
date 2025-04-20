@@ -26,6 +26,9 @@ process.on('SIGTERM', gracefulShutdown);
 // Храним chat_id пользователей для уведомлений
 const userChatIds = new Map();
 
+// Создаем временное хранилище для пересланных сообщений
+const forwardedMessages = {};
+
 // Функция корректного завершения работы бота
 function gracefulShutdown() {
   console.log('Получен сигнал завершения, останавливаю бота...');
@@ -47,11 +50,14 @@ async function getOrCreateUser(msg) {
   try {
     const telegramUser = msg.from;
     
+    console.log(`👉 DEBUG: getOrCreateUser вызван для пользователя с Telegram ID: ${telegramUser.id}, имя: ${telegramUser.first_name}`);
+    
     // Проверяем, есть ли пользователь в базе
     const response = await axios.get(`${apiUrl}/users/telegram/${telegramUser.id}`);
     
     if (response.status === 200 && !response.data.error) {
       console.log(`👉 ✅ Найден существующий пользователь: ${telegramUser.first_name} (ID: ${response.data.id})`);
+      console.log(`👉 DEBUG: Данные пользователя из базы:`, JSON.stringify(response.data));
       
       // Проверяем, соответствует ли ID пользователя его Telegram ID
       if (response.data.id !== telegramUser.id) {
@@ -66,6 +72,7 @@ async function getOrCreateUser(msg) {
           
           if (updateResponse.status === 200) {
             console.log(`👉 ✅ ID пользователя обновлен на ${telegramUser.id}`);
+            console.log(`👉 DEBUG: Обновленные данные пользователя:`, JSON.stringify(updateResponse.data));
             
             // Сохраняем chat_id пользователя для уведомлений
             userChatIds.set(telegramUser.id, msg.chat.id);
@@ -74,6 +81,7 @@ async function getOrCreateUser(msg) {
           }
         } catch (updateError) {
           console.error('Ошибка при обновлении ID пользователя:', updateError);
+          console.error('Детали ошибки:', updateError.response ? updateError.response.data : 'Нет данных о response');
         }
       }
       
@@ -85,9 +93,12 @@ async function getOrCreateUser(msg) {
   } catch (error) {
     // Пользователь не найден, создаем нового
     console.log(`👉 ℹ️ Пользователь не найден в базе, создаем нового...`);
+    console.error('Ошибка при поиске пользователя:', error);
+    console.error('Детали ошибки:', error.response ? error.response.data : 'Нет данных о response');
   }
   
   try {
+    const telegramUser = msg.from;
     // Создаем нового пользователя
     const userData = {
       id: telegramUser.id, // Используем Telegram ID как основной ID
@@ -97,10 +108,13 @@ async function getOrCreateUser(msg) {
       username: telegramUser.username
     };
     
+    console.log(`👉 DEBUG: Создаем нового пользователя с данными:`, JSON.stringify(userData));
+    
     const createResponse = await axios.post(`${apiUrl}/users`, userData);
     
     if (createResponse.status === 200 || createResponse.status === 201) {
       console.log(`👉 ✅ Создан новый пользователь: ${telegramUser.first_name} (ID: ${createResponse.data.id})`);
+      console.log(`👉 DEBUG: Данные созданного пользователя:`, JSON.stringify(createResponse.data));
       
       // Сохраняем chat_id пользователя для уведомлений
       userChatIds.set(createResponse.data.id, msg.chat.id);
@@ -111,8 +125,10 @@ async function getOrCreateUser(msg) {
     throw new Error('Не удалось создать пользователя');
   } catch (createError) {
     console.error('Ошибка при создании пользователя:', createError);
+    console.error('Детали ошибки:', createError.response ? createError.response.data : 'Нет данных о response');
     
     // В случае ошибки используем локальные данные пользователя
+    const telegramUser = msg.from;
     const defaultUser = {
       id: telegramUser.id,
       telegram_id: telegramUser.id,
@@ -120,6 +136,8 @@ async function getOrCreateUser(msg) {
       last_name: telegramUser.last_name,
       username: telegramUser.username
     };
+    
+    console.log(`👉 DEBUG: Возвращаем локальные данные пользователя:`, JSON.stringify(defaultUser));
     
     // Сохраняем chat_id пользователя для уведомлений
     userChatIds.set(defaultUser.id, msg.chat.id);
@@ -137,12 +155,21 @@ bot.onText(/\/start/, async (msg) => {
     const user = await getOrCreateUser(msg);
     const userName = user.first_name || 'пользователь';
     
-    bot.sendMessage(chatId, `Привет, ${userName}! Я бот для управления задачами TaskDrop. Вот что я умею:
-    
+    bot.sendMessage(chatId, `Привет, ${userName}! Я бот для управления задачами TaskDrop. 
+
+🔸 *Как со мной работать:*
+1. Используйте команды, начинающиеся со знака / (например, /tasks)
+2. Пересылайте мне сообщения, чтобы создать задачи на их основе
+3. Нажимайте на кнопки под сообщениями для быстрого доступа
+
+🔸 *Основные команды:*
 /tasks - показать список активных задач
-/add - добавить новую задачу
+/add название задачи - добавить новую задачу
 /help - показать информацию о командах
-/webapp - открыть веб-приложение`, {
+/webapp - открыть веб-приложение
+
+🚀 Нажмите кнопку ниже, чтобы открыть веб-версию приложения:`, {
+      parse_mode: 'Markdown',
       reply_markup: {
         inline_keyboard: [
           [{ text: '🚀 Открыть приложение', web_app: { url: webAppUrl } }]
@@ -159,12 +186,28 @@ bot.onText(/\/start/, async (msg) => {
 bot.onText(/\/help/, (msg) => {
   const chatId = msg.chat.id;
   
-  bot.sendMessage(chatId, `Список доступных команд:
-  
+  bot.sendMessage(chatId, `📚 *Справка по TaskDrop*
+
+🔸 *Основные команды:*
 /tasks - показать список активных задач
-/add - добавить новую задачу
+/add название - добавить новую задачу (пример: /add Купить молоко)
 /help - показать эту справку
-/webapp - открыть веб-приложение`, {
+/webapp - открыть веб-приложение
+
+🔸 *Создание задач:*
+1. Используйте команду /add с текстом задачи
+2. Перешлите мне любое сообщение, чтобы создать задачу на его основе
+
+🔸 *Управление задачами:*
+- В веб-приложении: полное управление задачами
+- В боте: просмотр списка и добавление новых задач
+
+🔸 *Уведомления:*
+- Бот автоматически отправит напоминание о приближающихся задачах
+- В веб-приложении можно настроить время уведомления 
+
+🚀 Нажмите кнопку ниже, чтобы открыть веб-приложение:`, {
+    parse_mode: 'Markdown',
     reply_markup: {
       inline_keyboard: [
         [{ text: '🚀 Открыть приложение', web_app: { url: webAppUrl } }]
@@ -303,7 +346,17 @@ bot.onText(/\/add (.+)/, async (msg, match) => {
 // Обработчик простой команды добавления задачи без параметров
 bot.onText(/^\/add$/, (msg) => {
   const chatId = msg.chat.id;
-  bot.sendMessage(chatId, 'Пожалуйста, укажите текст задачи: /add Название задачи', {
+  bot.sendMessage(chatId, `Для добавления задачи используйте команду в формате:
+  
+📝 */add Текст вашей задачи*
+
+*Например:*
+/add Купить молоко
+/add Позвонить маме в 18:00
+/add Подготовить презентацию к понедельнику
+
+После создания задачи вы можете открыть веб-приложение для настройки уведомлений, дат и времени.`, {
+    parse_mode: 'Markdown',
     reply_markup: {
       inline_keyboard: [
         [{ text: '🚀 Открыть приложение', web_app: { url: webAppUrl } }]
@@ -330,7 +383,11 @@ bot.on('message', (msg) => {
     // Если сообщение переслано, это может быть новость
     const forwardFrom = msg.forward_from ? msg.forward_from.first_name : (msg.forward_from_chat ? msg.forward_from_chat.title : 'неизвестный источник');
     
-    bot.sendMessage(chatId, `Переслано от: ${forwardFrom}\n${msg.text || 'Медиа-контент'}`, {
+    // Сохраняем пересланное сообщение во временном хранилище с привязкой к chatId
+    forwardedMessages[chatId] = msg;
+    console.log(`👉 DEBUG: Сохранено пересланное сообщение для chatId: ${chatId}`);
+    
+    bot.sendMessage(chatId, `Переслано от: ${forwardFrom}\n${msg.text || 'Медиа-контент'}\n\nХотите создать задачу на основе этого сообщения?`, {
       reply_markup: {
         inline_keyboard: [
           [{ text: 'Создать задачу', callback_data: 'create_task_from_forward' }],
@@ -343,7 +400,14 @@ bot.on('message', (msg) => {
   
   // Обработка обычных текстовых сообщений
   if (msg.text && !msg.text.startsWith('/')) {
-    bot.sendMessage(chatId, 'Я понимаю только команды. Используйте /help для получения списка команд.', {
+    bot.sendMessage(chatId, `Я понимаю только команды и пересланные сообщения:
+
+1️⃣ *Команды* начинаются со знака / (например, /help)
+2️⃣ *Пересылайте* сообщения, чтобы создать задачи
+3️⃣ Используйте *кнопки* для быстрого доступа
+
+Используйте /help для получения списка всех доступных команд.`, {
+      parse_mode: 'Markdown',
       reply_markup: {
         inline_keyboard: [
           [{ text: '🚀 Открыть приложение', web_app: { url: webAppUrl } }]
@@ -375,15 +439,27 @@ bot.on('callback_query', async (callbackQuery) => {
     });
   } else if (data === 'create_task_from_forward') {
     try {
-      // Получаем текст из пересланного сообщения
-      const forwardedMessage = callbackQuery.message.reply_to_message;
+      // Получаем сохраненное пересланное сообщение
+      const forwardedMessage = forwardedMessages[chatId];
+      if (!forwardedMessage) {
+        console.error(`👉 ❌ Не найдено пересланное сообщение для chatId: ${chatId}`);
+        throw new Error('Не удалось найти пересланное сообщение. Пожалуйста, попробуйте снова.');
+      }
+      
       const taskTitle = forwardedMessage.text || forwardedMessage.caption || 'Задача из Telegram';
+      
+      console.log(`👉 DEBUG: Обработка пересланного сообщения для создания задачи`);
+      console.log(`👉 DEBUG: Данные callbackQuery.from:`, JSON.stringify(callbackQuery.from));
+      console.log(`👉 DEBUG: Текст пересланного сообщения:`, taskTitle);
       
       // Получаем пользователя через функцию getOrCreateUser
       const user = await getOrCreateUser({
         chat: { id: chatId },
         from: callbackQuery.from
       });
+      
+      console.log(`👉 DEBUG: Результат getOrCreateUser:`, JSON.stringify(user));
+      console.log(`👉 DEBUG: user_id из getOrCreateUser: ${user.id}`);
       
       // Создаем данные задачи с корректным ID пользователя
       const taskData = {
@@ -394,12 +470,18 @@ bot.on('callback_query', async (callbackQuery) => {
         priority: 'medium'
       };
       
-      console.log(`Создание задачи для пользователя: ${user.first_name} (ID: ${user.id})`);
+      console.log(`👉 DEBUG: Данные для создания задачи:`, JSON.stringify(taskData));
+      console.log(`👉 Создание задачи для пользователя: ${user.first_name} (ID: ${user.id})`);
+      
       const response = await axios.post(`${apiUrl}/tasks`, taskData);
       
-      console.log('Ответ API:', JSON.stringify(response.data));
+      console.log('👉 DEBUG: Ответ API:', JSON.stringify(response.data));
+      console.log(`👉 DEBUG: ID созданной задачи: ${response.data.id}, user_id: ${response.data.user_id}`);
       
       if (response.data && response.data.id) {
+        // Очищаем временное хранилище, чтобы избежать повторного создания задачи
+        delete forwardedMessages[chatId];
+        
         bot.sendMessage(chatId, '✅ Задача успешно создана из пересланного сообщения!', {
           reply_markup: {
             inline_keyboard: [
@@ -419,6 +501,8 @@ bot.on('callback_query', async (callbackQuery) => {
       bot.sendMessage(chatId, `Произошла ошибка при создании задачи: ${error.message}. Пожалуйста, попробуйте позже.`);
     }
   } else if (data === 'cancel_forward') {
+    // Очищаем временное хранилище, чтобы освободить память
+    delete forwardedMessages[chatId];
     bot.sendMessage(chatId, 'Действие отменено.');
   } else if (data.startsWith('complete_task_')) {
     const taskId = data.split('_')[2];
@@ -783,4 +867,4 @@ bot.onText(/^\/force_notification$/, (msg) => {
   bot.sendMessage(chatId, 'Пожалуйста, укажите ID задачи: /force_notification ID');
 });
 
-console.log('Бот TaskDrop запущен!'); 
+console.log('Бот TaskDrop запущен!');
